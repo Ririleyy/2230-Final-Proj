@@ -12,6 +12,7 @@
 #include <QKeyEvent>
 #include <QMouseEvent>
 #include "glm/glm.hpp"
+#include "utils/camera.h"
 
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
@@ -62,12 +63,12 @@ private:
     glm::vec3 m_eye;
     glm::vec3 m_look;
     glm::vec3 m_up;
-    const int m_translSpeed = 5;
     std::unordered_map<Qt::Key, bool> m_keyMap;
     int m_timer; 
 
     bool m_mouseDown = false;
     glm::vec2 m_prev_mouse_pos;
     const float m_rotSpeed = 0.005;
+    const float m_translSpeed = 5;
     QElapsedTimer m_elapsedTimer; // Stores timer which keeps track of actual time between frames
 };

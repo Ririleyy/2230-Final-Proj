@@ -28,19 +28,19 @@ void main() {
 
     // Task 11: set your output color to the absolute value of your world-space normals,
     //          to make sure your normals are correct.
-    fragColor = vec4(abs(worldNormal), 1.0);
+    // fragColor = vec4(abs(worldNormal), 1.0);
 
     // Task 12: add ambient component to output color
-    // fragColor = vec4(k_a, k_a, k_a, 1.0);
+    fragColor = vec4(k_a, k_a, k_a, 1.0);
     // Task 13: add diffuse component to output color
-    // vec3 L = normalize(lightPos.xyz - worldPos);
-    // vec3 N = normalize(worldNormal);
-    // float diffuse = clamp(dot(N, L), 0.0, 1.0);
-    // fragColor += vec4(k_d * diffuse, k_d * diffuse, k_d * diffuse, 1.0);
+    vec3 L = normalize(lightPos.xyz - worldPos);
+    vec3 N = normalize(worldNormal);
+    float diffuse = clamp(dot(N, L), 0.0, 1.0);
+    fragColor += vec4(k_d * diffuse, k_d * diffuse, k_d * diffuse, 1.0);
 
     // Task 14: add specular component to output color
-    // vec3 R = reflect(-L, N);
-    // vec3 E = normalize(camPos.xyz - worldPos);
-    // float specular = pow(clamp(dot(R, E), 0.0, 1.0), shininess);
-    // fragColor += vec4(k_s * specular, k_s * specular, k_s * specular, 1.0);
+    vec3 R = reflect(-L, N);
+    vec3 E = normalize(camPos.xyz - worldPos);
+    float specular = pow(clamp(dot(R, E), 0.0, 1.0), shininess);
+    fragColor += vec4(k_s * specular, k_s * specular, k_s * specular, 1.0);
 }

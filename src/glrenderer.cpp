@@ -18,9 +18,10 @@ GLRenderer::GLRenderer(QWidget *parent)
       m_angleY(0),
       m_zoom(2)
 {
-    m_eye = glm::vec3(2, -3.4641, 0);
-    m_look = glm::vec3(0, 0, 0);
-    m_up = glm::vec3(0, 0, 1);
+    setFocusPolicy(Qt::StrongFocus);
+    m_eye = glm::vec3(3, 0, 0);
+    m_look = glm::vec3(-3, 0, 0);
+    m_up = glm::vec3(0, 1, 0);
     m_keyMap[Qt::Key_W] = false;
     m_keyMap[Qt::Key_A] = false;
     m_keyMap[Qt::Key_S] = false;
@@ -217,16 +218,13 @@ void GLRenderer::mouseMoveEvent(QMouseEvent *event)
         int deltaY = posY - m_prev_mouse_pos.y;
         m_prev_mouse_pos = glm::vec2(posX, posY);
 
-        // Use deltaX and deltaY here to rotate
-        float xAngle = m_rotSpeed * deltaX;
-        float yAngle = m_rotSpeed * deltaY;
-
-        glm::vec3 right = glm::normalize(glm::cross(m_eye, m_up));
-        glm::mat4 xRotator = glm::rotate(glm::mat4(1), -xAngle, m_up);
-        glm::mat4 yRotator = glm::rotate(glm::mat4(1), yAngle, right);
-        glm::vec4 newEye = glm::vec4(m_eye - m_look, 1);
-        newEye = xRotator * yRotator * newEye;
-        m_eye = glm::vec3(newEye) + m_look;
+        glm::vec3 look = m_look;
+        glm::vec3 up = m_up;
+        glm::vec3 rotAxisH = glm::vec3(0, 1, 0);
+        glm::vec3 rotAxisV = glm::normalize(glm::cross(look, up));
+        glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, -deltaX * m_rotSpeed);
+        glm::mat3 rotMatV = Camera::getRotationMatrix(rotAxisV, -deltaY * m_rotSpeed);
+        m_look = rotMatV * rotMatH * look;
         rebuildMatrices();
     }
 }
@@ -249,7 +247,6 @@ void GLRenderer::wheelEvent(QWheelEvent *event)
 void GLRenderer::keyPressEvent(QKeyEvent *event)
 {
     m_keyMap[Qt::Key(event->key())] = true;
-    std::cout << "Key Pressed: " << event->key() << std::endl;
 }
 
 void GLRenderer::keyReleaseEvent(QKeyEvent *event)
@@ -263,12 +260,16 @@ void GLRenderer::timerEvent(QTimerEvent *event)
     float deltaTime = elapsedms * 0.001f;
     m_elapsedTimer.restart();
 
-    // Use deltaTime and m_keyMap here to move around
+// Calculate normalized look direction and right vector
+    glm::vec3 lookDir = glm::normalize(m_look - m_eye);
+    glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
+    
+    // Calculate movement vectors
+    glm::vec3 moveFront = m_translSpeed * deltaTime * lookDir;
+    glm::vec3 moveRight = m_translSpeed * deltaTime * rightDir;
+    glm::vec3 moveUp = m_translSpeed * deltaTime * m_up;
 
-    glm::vec3 moveFront = m_translSpeed * deltaTime * glm::normalize(m_eye);
-    glm::vec3 moveRight = m_translSpeed * deltaTime * glm::normalize(glm::cross(m_eye, m_up)); // normalize just in case
-    glm::vec3 moveUp = m_translSpeed * deltaTime * glm::vec3(0, 1, 0);
-
+    // Process key movements
     for (auto &key : m_keyMap)
     {
         if (key.second)
@@ -277,46 +278,41 @@ void GLRenderer::timerEvent(QTimerEvent *event)
             {
             case Qt::Key_W:
                 m_eye += moveFront;
-                break;
-            case Qt::Key_A:
-                m_eye -= moveRight;
+                m_look += moveFront;
                 break;
             case Qt::Key_S:
                 m_eye -= moveFront;
+                m_look -= moveFront;
+                break;
+            case Qt::Key_A:
+                m_eye -= moveRight;
+                m_look -= moveRight;
                 break;
             case Qt::Key_D:
                 m_eye += moveRight;
+                m_look += moveRight;
                 break;
             case Qt::Key_Control:
                 m_eye -= moveUp;
+                m_look -= moveUp;
                 break;
             case Qt::Key_Space:
                 m_eye += moveUp;
+                m_look += moveUp;
                 break;
             default:
                 break;
             }
         }
     }
+
     rebuildMatrices();
 }
 
 void GLRenderer::rebuildMatrices()
 {
     // Update view matrix by rotating eye vector based on x and y angles
-    m_view = glm::mat4(1);
-    glm::mat4 rot = glm::rotate(glm::radians(-10 * m_angleX), glm::vec3(0, 0, 1));
-    glm::vec3 eye = glm::vec3(2, 0, 0);
-    eye = glm::vec3(rot * glm::vec4(eye, 1));
-
-    rot = glm::rotate(glm::radians(-10 * m_angleY), glm::cross(glm::vec3(0, 0, 1), eye));
-    eye = glm::vec3(rot * glm::vec4(eye, 1));
-
-    eye = eye * m_zoom;
-
     m_view = glm::lookAt(m_eye, m_look, m_up);
-
     m_proj = glm::perspective(glm::radians(45.0), 1.0 * width() / height(), 0.01, 100.0);
-
     update();
 }

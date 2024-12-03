@@ -9,7 +9,6 @@ public:
     virtual ~Shape() = default;
     const virtual std::vector<float>& generateShape() { return m_vertexData; }
     int getNumVerticies() const { return m_vertexData.size() / 8; }
-    virtual void readObj(const std::string &filename) {}  // only for Mesh
 
 protected:
     void insertVec3(std::vector<float> &data, glm::vec3 v);

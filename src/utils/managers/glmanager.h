@@ -6,7 +6,6 @@
 #include <string>
 #include <QImage>
 #include <QCoreApplication>
-#include "utils/sceneparser.h"
 #include "utils/scenedata.h"
 
 struct ShapeBuffer

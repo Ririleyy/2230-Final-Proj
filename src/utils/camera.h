@@ -1,10 +1,21 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "utils/scenedata.h"
 #include "settings.h"
 
 // A class representing a virtual camera.
+struct SceneCameraData
+{
+    glm::vec4 pos;
+    glm::vec4 look;
+    glm::vec4 up;
+
+    float heightAngle; // The height angle of the camera in RADIANS
+
+    float aperture;    // Only applicable for depth of field
+    float focalLength; // Only applicable for depth of field
+};
+
 class Camera
 {
 public:

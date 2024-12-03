@@ -11,6 +11,7 @@
 *.lo
 *.o
 *.obj
+build
 
 # Precompiled Headers
 *.gch
@@ -43,7 +44,8 @@
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*

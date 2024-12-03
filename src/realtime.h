@@ -16,14 +16,10 @@
 #include <unordered_map>
 
 #include "utils/shaderloader.h"
-#include "utils/managers/geometrymanager.h"
 #include "utils/managers/uniformmanager.h"
 #include "utils/managers/glmanager.h"
-
-std::vector<float> generateSphereData(int phiTesselations, int thetaTesselations);
-glm::vec4 sphericalToCartesian(float phi, float theta);
-void pushVec3(glm::vec4 vec, std::vector<float> *data);
-
+#include "utils/shapes/dome.h"
+#include "utils/camera.h"
 class Realtime : public QOpenGLWidget
 {
 public:
@@ -51,34 +47,24 @@ private:
     void mouseMoveEvent(QMouseEvent *event) override;
     void timerEvent(QTimerEvent *event) override;
 
-    // VAOs and VBOs for shapes
-    ShapeBuffer m_screenBuffer;
+    // sky dome
+    ShapeBuffer m_skydomeBuffer;
+    Dome* m_skydome;
+    glm::mat4 m_skydomeModelMatrix = glm::mat4(1.0f);
 
-    std::unordered_map<PrimitiveType, ShapeBuffer> m_primitiveBuffers;
-    std::unordered_map<std::string, ShapeBuffer> m_meshBuffers;
-    std::unordered_map<LODKey, ShapeBuffer> m_LODshapeBuffers;
-
-    ShapeBuffer &getShapeBuffer(const RenderShapeData &shape);
-    template <typename T>
-    ShapeBuffer &getBuffer(std::unordered_map<T, ShapeBuffer> &bufferMap, const T &key);
-
-    template <typename T>
-    void cleanBuffers(std::unordered_map<T, ShapeBuffer> &bufferMap);
     // Camera
     float m_aspectRatio, m_heightAngle;
     glm::mat4 m_viewMatrix = glm::mat4(1.0f);
     glm::mat4 m_invViewMatrix = glm::mat4(1.0f);
     glm::mat4 m_projMatrix = glm::mat4(1.0f);
+    SceneCameraData m_cameraData;
     // temp
     void populateSceneData();
 
     // Shaders
     GLuint m_phong_shader;
-    GLuint m_texture_shader;
     void paintScene();
-    void paintTexture(GLuint texture);
 
-    GeometryManager *m_geometryMgr;
     UniformManager *m_uniformMgr;
 
     // Tick Related Variables
@@ -94,13 +80,6 @@ private:
 
     // Device Correction Variables
     double m_devicePixelRatio;
-
-    // Scene/Camera Variables
-    RenderData m_renderData;
-
-    // FBO Variables
-    int m_screen_width, m_screen_height;
-    FBOConfig m_fboConfig, m_defaultFbo;
 
     // Textures
     GLuint m_texture;

@@ -6,8 +6,6 @@
 #include <unordered_set>
 #include <memory>
 #include <iostream>
-#include "utils/scenedata.h"
-#include "utils/sceneparser.h"
 #include "utils/shapes/shapes.h"
 #include "utils/shapes/cube.h"
 #include "utils/shapes/cone.h"

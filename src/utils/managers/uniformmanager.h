@@ -4,7 +4,6 @@
 #include <glm/glm.hpp>
 #include <unordered_map>
 #include <string>
-#include "utils/sceneparser.h"
 
 class UniformManager {
 private:
@@ -48,14 +47,8 @@ public:
     }
 
     // Actual uniform setters
-    void setSceneGlobalUniform(SceneGlobalData& globalData);
-
     void setMVPUniform(const glm::mat4 &projectionMatrix, const glm::mat4& viewMatrix, const glm::mat4 &ctm);
     
-    void setLightUniform(SceneLightData& lightData, const int index);
-    
-    void setMaterialUniform(const SceneMaterial& material);
-
     void setCameraPosUniform(const glm::vec4& cameraPos) {
         setVec4("camPos", cameraPos);
     }

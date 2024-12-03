@@ -7,26 +7,6 @@ float Camera::getAspectRatio() const
   throw std::runtime_error("not implemented");
 }
 
-// float Camera::getHeightAngle() const {
-//     // Optional TODO: implement the getter or make your own design
-//     return
-// }
-
-// float Camera::getWidthAngle(float heightAngle, int width, int height) const {
-//     // Optional TODO: implement the getter or make your own design
-//     throw std::runtime_error("not implemented");
-// }
-
-// float Camera::getFocalLength() const {
-//     // Optional TODO: implement the getter or make your own design
-//     throw std::runtime_error("not implemented");
-// }
-
-// float Camera::getAperture() const {
-//     // Optional TODO: implement the getter or make your own design
-//     throw std::runtime_error("not implemented");
-// }
-
 glm::vec3 Camera::getCameraPos() const { return camPos; }
 
 Camera::Camera(const SceneCameraData &camData, const Settings &settings, int height, const int width)

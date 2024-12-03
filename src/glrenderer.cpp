@@ -3,7 +3,6 @@
 #include <QCoreApplication>
 #include "src/shaderloader.h"
 
-#include <QMouseEvent>
 #include "glm/gtc/constants.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
@@ -19,12 +18,25 @@ GLRenderer::GLRenderer(QWidget *parent)
       m_angleY(0),
       m_zoom(2)
 {
+    m_eye = glm::vec3(2, -3.4641, 0);
+    m_look = glm::vec3(0,0,0);
+    m_up = glm::vec3(0,0,1);
+    m_keyMap[Qt::Key_W] = false;
+    m_keyMap[Qt::Key_A] = false;
+    m_keyMap[Qt::Key_S] = false;
+    m_keyMap[Qt::Key_D] = false;
+    m_keyMap[Qt::Key_Control] = false;
+    m_keyMap[Qt::Key_Space] = false;
     rebuildMatrices();
 }
 
 GLRenderer::~GLRenderer()
 {
     makeCurrent();
+    killTimer(m_timer);
+    glDeleteBuffers(1, &m_sphere_vbo);
+    glDeleteVertexArrays(1, &m_sphere_vao);
+    glDeleteProgram(m_shader);
     doneCurrent();
 }
 
@@ -81,6 +93,9 @@ std::vector<float> generateSphereData(int phiTesselations, int thetaTesselations
 
 void GLRenderer::initializeGL()
 {
+    m_timer = startTimer(1000 / 60);
+    m_elapsedTimer.start();
+
     // Initialize GL extension wrangler
     glewExperimental = GL_TRUE;
     GLenum err = glewInit();
@@ -191,6 +206,61 @@ void GLRenderer::wheelEvent(QWheelEvent *event) {
     rebuildMatrices();
 }
 
+void GLRenderer::keyPressEvent(QKeyEvent *event)
+{
+    m_keyMap[Qt::Key(event->key())] = true;
+}
+
+void GLRenderer::keyReleaseEvent(QKeyEvent *event)
+{
+    m_keyMap[Qt::Key(event->key())] = false;
+}
+
+void GLRenderer::timerEvent(QTimerEvent *event)
+{
+    int elapsedms = m_elapsedTimer.elapsed();
+    float deltaTime = elapsedms * 0.001f;
+    m_elapsedTimer.restart();
+
+    // Use deltaTime and m_keyMap here to move around
+
+    glm::vec3 moveFront = m_translSpeed * deltaTime * glm::normalize(m_eye);
+    glm::vec3 moveRight = m_translSpeed * deltaTime * glm::normalize(glm::cross(m_eye, m_up)); // normalize just in case
+    glm::vec3 moveUp = m_translSpeed * deltaTime * glm::vec3(0, 1, 0);
+
+    for (auto &key : m_keyMap)
+    {
+        if (key.second)
+        {
+            switch (key.first)
+            {
+            case Qt::Key_W:
+                m_eye += moveFront;
+                std::cout << "W" << std::endl;
+                break;
+            case Qt::Key_A:
+                m_eye -= moveRight;
+                break;
+            case Qt::Key_S:
+                m_eye -= moveFront;
+                break;
+            case Qt::Key_D:
+                m_eye += moveRight;
+                break;
+            case Qt::Key_Control:
+                m_eye -= moveUp;
+                break;
+            case Qt::Key_Space:
+                m_eye += moveUp;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    rebuildMatrices();
+}
+
 void GLRenderer::rebuildMatrices() {
     // Update view matrix by rotating eye vector based on x and y angles
     m_view = glm::mat4(1);
@@ -202,10 +272,12 @@ void GLRenderer::rebuildMatrices() {
     eye = glm::vec3(rot * glm::vec4(eye,1));
 
     eye = eye * m_zoom;
+    std::cout << eye.x << " " << eye.y << " " << eye.z << std::endl;
 
-    m_view = glm::lookAt(eye,glm::vec3(0,0,0),glm::vec3(0,0,1));
+    m_view = glm::lookAt(m_eye,m_look,m_up);
 
     m_proj = glm::perspective(glm::radians(45.0),1.0 * width() / height(),0.01,100.0);
 
     update();
 }
+

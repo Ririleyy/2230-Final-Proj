@@ -28,6 +28,7 @@ protected:
 
     void mousePressEvent(QMouseEvent *e) override;   // Used for camera movement
     void mouseMoveEvent(QMouseEvent *e) override;    // Used for camera movement
+    void mouseReleaseEvent(QMouseEvent *event) override; // Used for camera movement
     void wheelEvent(QWheelEvent *e) override;        // Used for camera movement
     void keyPressEvent(QKeyEvent *event) override;   // Used for camera movement
     void keyReleaseEvent(QKeyEvent *event) override; // Used for camera movement
@@ -64,5 +65,9 @@ private:
     const int m_translSpeed = 5;
     std::unordered_map<Qt::Key, bool> m_keyMap;
     int m_timer; 
+
+    bool m_mouseDown = false;
+    glm::vec2 m_prev_mouse_pos;
+    const float m_rotSpeed = 0.005;
     QElapsedTimer m_elapsedTimer; // Stores timer which keeps track of actual time between frames
 };

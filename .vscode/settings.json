@@ -55,6 +55,10 @@
         "typeinfo": "cpp",
         "unordered_map": "cpp",
         "variant": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "__tree": "cpp",
+        "fstream": "cpp",
+        "map": "cpp",
+        "unordered_set": "cpp"
     }
 }

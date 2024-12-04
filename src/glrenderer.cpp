@@ -265,7 +265,7 @@ void GLRenderer::mouseMoveEvent(QMouseEvent *event)
         glm::vec3 up = m_up;
         glm::vec3 rotAxisH = glm::vec3(0, 1, 0);
         glm::vec3 rotAxisV = glm::normalize(glm::cross(look, up));
-        glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, deltaX * m_rotSpeed);
+        glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, -deltaX * m_rotSpeed);
         glm::mat3 rotMatV = Camera::getRotationMatrix(rotAxisV, -deltaY * m_rotSpeed);
         m_look = rotMatV * rotMatH * look;
         rebuildMatrices();

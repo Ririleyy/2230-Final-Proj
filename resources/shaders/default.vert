@@ -20,7 +20,7 @@ void main() {
     //         the fragment shader using the variables created in task 5
     worldPos = vec3(model * vec4(position, 1.0));
     mat4 normalMatrix = transpose(inverse(model));
-    worldNormal = normalize(vec3(normalMatrix * vec4(normalize(position), 0.0)));
+    worldNormal = -normalize(vec3(normalMatrix * vec4(normalize(position), 0.0)));
     
     // Recall that transforming normals requires obtaining the inverse-transpose of the model matrix!
     // In projects 5 and 6, consider the performance implications of performing this here.

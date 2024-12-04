@@ -1,46 +1,112 @@
 #version 330 core
 
-// Task 5: declare "in" variables for the world-space position and normal,
-//         received post-interpolation from the vertex shader
 in vec3 worldPos;
-in vec3 worldNormal;
-
-// Task 10: declare an out vec4 for your output color
 out vec4 fragColor;
 
-// Task 12: declare relevant uniform(s) here, for ambient lighting
-uniform float k_a;
+#define T 2.3
+#define M_PI 3.1415926535897932384626433832795
 
-// Task 13: declare relevant uniform(s) here, for diffuse lighting
-uniform float k_d;
-uniform vec4 lightPos;
+uniform vec2 sunPosition; // You'll need to pass this from your application
 
-// Task 14: declare relevant uniform(s) here, for specular lighting
-uniform float k_s;
-uniform float shininess;
-uniform vec4 camPos;
+// Preetham model parameters
+float A_x = -0.0193 * T - 0.2592;
+float B_x = -0.0665 * T + 0.0008;
+float C_x = -0.0004 * T + 0.2125;
+float D_x = -0.0641 * T - 0.8989;
+float E_x = -0.0033 * T + 0.0452;
+
+float A_y = -0.0167 * T - 0.2608;
+float B_y = -0.0950 * T + 0.0092;
+float C_y = -0.0079 * T + 0.2102;
+float D_y = -0.0441 * T - 1.6537;
+float E_y = -0.0109 * T + 0.0529;
+
+float A_Y = 0.1787 * T - 1.4630;
+float B_Y = -0.3554 * T + 0.4275;
+float C_Y = -0.0227 * T + 5.3251;
+float D_Y = 0.1206 * T - 2.5771;
+float E_Y = -0.0670 * T + 0.3703;
+
+mat4x3 x_chromaticity = mat4x3(
+    0.0017, -0.0290, 0.1169,
+    -0.0037, 0.0638,-0.2120,
+    0.0021, -0.0320, 0.0605,
+    0.0000, 0.0039, 0.2589
+);
+
+mat4x3 y_chromaticity = mat4x3(
+    0.0028, -0.0421, 0.1535,
+    -0.0061, 0.0897, -0.2676,
+    0.0032, -0.0415, 0.0667,
+    0.0000, 0.0052, 0.2669
+);
+
+float angle(float z1, float a1, float z2, float a2) {
+    return acos(
+        sin(z1) * cos(a1) * sin(z2) * cos(a2) +
+        sin(z1) * sin(a1) * sin(z2) * sin(a2) +
+        cos(z1) * cos(z2));
+}
+
+float zenith_chromaticity(float sun_z, mat4x3 coefficients) {
+    vec3 T_vec = vec3(T * T, T, 1);
+    vec4 Z_vec = vec4(sun_z*sun_z*sun_z, sun_z*sun_z, sun_z, 1.0);
+    return dot(T_vec, coefficients * Z_vec);
+}
+
+float zenith_luminance(float sun_z) {
+    float chi = (4.0 / 9.0 - T / 120.0) * (M_PI - 2.0 * sun_z);
+    return (4.0453 * T - 4.9710) * tan(chi) - 0.2155 * T + 2.4192;
+}
+
+float F(float theta, float gamma, float A, float B, float C, float D, float E) {
+    return (1.0 + A * exp(B / cos(theta))) * (1.0 + C * exp(D * gamma) + E * pow(cos(gamma), 2.0));
+}
+
+vec3 xyY_to_XYZ(float x, float y, float Y) {
+    return vec3(x * Y / y, Y, (1.0 - x - y) * Y / y);
+}
+
+vec3 XYZ_to_RGB(vec3 XYZ) {
+    mat3 XYZ_to_linear = mat3(
+        3.24096994, -0.96924364, 0.55630080,
+        -1.53738318, 1.8759675, -0.20397696,
+        -0.49861076, 0.04155506, 1.05697151
+    );
+    return XYZ_to_linear * XYZ;
+}
+
+vec3 xyY_to_RGB(float x, float y, float Y) {
+    vec3 XYZ = xyY_to_XYZ(x, y, Y);
+    vec3 sRGB = XYZ_to_RGB(XYZ);
+    return sRGB;
+}
+
+vec3 tonemap(vec3 color, float exposure) {
+    return vec3(2.0) / (vec3(1.0) + exp(-exposure * color)) - vec3(1.0);
+}
 
 void main() {
-    // Remember that you need to renormalize vectors here if you want them to be normalized
-
-    // Task 10: set your output color to white (i.e. vec4(1.0)). Make sure you get a white circle!
-    // fragColor = vec4(1.0);
-
-    // Task 11: set your output color to the absolute value of your world-space normals,
-    //          to make sure your normals are correct.
-    fragColor = vec4(abs(worldNormal), 1.0);
-
-    // // Task 12: add ambient component to output color
-    // fragColor = vec4(k_a, k_a, k_a, 1.0);
-    // // Task 13: add diffuse component to output color
-    // vec3 L = normalize(lightPos.xyz - worldPos);
-    // vec3 N = normalize(worldNormal);
-    // float diffuse = clamp(dot(N, L), 0.0, 1.0);
-    // fragColor += vec4(k_d * diffuse, k_d * diffuse, k_d * diffuse, 1.0);
-
-    // // Task 14: add specular component to output color
-    // vec3 R = reflect(-L, N);
-    // vec3 E = normalize(camPos.xyz - worldPos);
-    // float specular = pow(clamp(dot(R, E), 0.0, 1.0), shininess);
-    // fragColor += vec4(k_s * specular, k_s * specular, k_s * specular, 1.0);
+    // Convert world position to spherical coordinates
+    vec3 nPos = normalize(worldPos);
+    float pixel_distance = acos(nPos.y); // zenith angle
+    float pixel_angle = atan(nPos.x, nPos.z); // azimuth angle
+    
+    // Sun position (from uniform)
+    float sun_zenith = sunPosition.y;
+    float sun_azimuth = sunPosition.x;
+    
+    float gamma = angle(pixel_distance, pixel_angle, sun_zenith, sun_azimuth);
+    float theta = pixel_distance;
+    
+    float x_z = zenith_chromaticity(sun_zenith, x_chromaticity);
+    float y_z = zenith_chromaticity(sun_zenith, y_chromaticity);
+    float Y_z = zenith_luminance(sun_zenith);
+    
+    float x = x_z * F(theta, gamma, A_x, B_x, C_x, D_x, E_x) / F(0.0, sun_zenith, A_x, B_x, C_x, D_x, E_x);
+    float y = y_z * F(theta, gamma, A_y, B_y, C_y, D_y, E_y) / F(0.0, sun_zenith, A_y, B_y, C_y, D_y, E_y);
+    float Y = Y_z * F(theta, gamma, A_Y, B_Y, C_Y, D_Y, E_Y) / F(0.0, sun_zenith, A_Y, B_Y, C_Y, D_Y, E_Y);
+    
+    vec3 color = tonemap(xyY_to_RGB(x, y, Y), 0.1);
+    fragColor = vec4(color, 1.0);
 }

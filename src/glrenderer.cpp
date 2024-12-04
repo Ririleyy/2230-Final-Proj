@@ -3,17 +3,14 @@
 #include <QCoreApplication>
 #include "src/shaderloader.h"
 
+#include <cmath>
 #include "glm/gtc/constants.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
+#include "settings.h"
 
 GLRenderer::GLRenderer(QWidget *parent)
     : QOpenGLWidget(parent),
-      m_lightPos(10, 0, 0, 1),
-      m_ka(0.1),
-      m_kd(0.8),
-      m_ks(1),
-      m_shininess(15),
       m_angleX(6),
       m_angleY(0),
       m_zoom(2)
@@ -149,10 +146,8 @@ void GLRenderer::initializeGL()
     // Enable depth testing
     glEnable(GL_DEPTH_TEST);
 
-    // Task 1: call ShaderLoader::createShaderProgram with the paths to the vertex
-    //         and fragment shaders. Then, store its return value in `m_shader`
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
-
+    m_sunPos = glm::vec2(glm::radians(settings.elevation), glm::radians(settings.azimuth));
     // Generate and bind VBO
     glGenBuffers(1, &m_sphere_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
@@ -176,49 +171,36 @@ void GLRenderer::initializeGL()
 
 void GLRenderer::paintGL()
 {
-    // Clear screen color and depth before painting
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    // Bind Sphere Vertex Data
     glBindVertexArray(m_sphere_vao);
-
-    // Task 2: activate the shader program by calling glUseProgram with `m_shader`
     glUseProgram(m_shader);
 
-    // Task 6: pass in m_model as a uniform into the shader program
     GLint modelLoc = glGetUniformLocation(m_shader, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &m_model[0][0]);
-
-    // Task 7: pass in m_view and m_proj
     GLint viewLoc = glGetUniformLocation(m_shader, "view");
     GLint projLoc = glGetUniformLocation(m_shader, "projection");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &m_model[0][0]);
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, &m_proj[0][0]);
 
-    // Task 12: pass m_ka into the fragment shader as a uniform
-    GLint kaLoc = glGetUniformLocation(m_shader, "k_a");
-    glUniform1f(kaLoc, m_ka);
-    // Task 13: pass light position and m_kd into the fragment shader as a uniform
-    GLint kdLoc = glGetUniformLocation(m_shader, "k_d");
-    GLint lightPosLoc = glGetUniformLocation(m_shader, "lightPos");
-    glUniform1f(kdLoc, m_kd);
-    glUniform4fv(lightPosLoc, 1, &m_lightPos[0]);
-    // Task 14: pass shininess, m_ks, and world-space camera position
     glm::vec4 cameraPos = glm::vec4(glm::inverse(m_view)[3]);
-
-    GLint ksLoc = glGetUniformLocation(m_shader, "k_s");
-    GLint shininessLoc = glGetUniformLocation(m_shader, "shininess");
     GLint camPosLoc = glGetUniformLocation(m_shader, "camPos");
-    glUniform1f(ksLoc, m_ks);
-    glUniform1f(shininessLoc, m_shininess);
     glUniform4fv(camPosLoc, 1, &cameraPos[0]);
 
-    // Draw Command
-    glDrawArrays(GL_TRIANGLES, 0, m_sphereData.size() / 3);
-    // Unbind Vertex Array
-    glBindVertexArray(0);
+    GLint sunPosLoc = glGetUniformLocation(m_shader, "sunPosition");
+    glUniform2fv(sunPosLoc, 1, &m_sunPos[0]);
 
-    // Task 3: deactivate the shader program by passing 0 into glUseProgram
+    glDrawArrays(GL_TRIANGLES, 0, m_sphereData.size() / 3);
+
+    glBindVertexArray(0);
     glUseProgram(0);
+
+}
+
+void GLRenderer::settingsChanged()
+{
+    makeCurrent();
+    m_sunPos = glm::vec2(glm::radians(settings.elevation), glm::radians(settings.azimuth));
+    update(); // asks for a PaintGL() call to occur
 }
 
 // ================== Other stencil code
@@ -272,33 +254,26 @@ void GLRenderer::mouseMoveEvent(QMouseEvent *event)
     }
     else if (m_mouseDown == MouseStaus::RIGHT)
     {
-        // New right-click orbiting logic
         int posX = event->position().x();
         int posY = event->position().y();
         int deltaX = posX - m_prev_mouse_pos.x;
         int deltaY = posY - m_prev_mouse_pos.y;
         m_prev_mouse_pos = glm::vec2(posX, posY);
 
-        // Calculate distance from eye to look point
         float distanceToLook = glm::length(m_eye - m_look);
 
-        // Horizontal rotation (around world up vector)
         glm::vec3 rotAxisH = glm::vec3(0, 1, 0);
         glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, -deltaX * m_rotSpeed);
 
-        // Vertical rotation (around perpendicular axis)
         glm::vec3 lookDir = glm::normalize(m_look - m_eye);
         glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
         glm::mat3 rotMatV = Camera::getRotationMatrix(rightDir, deltaY * m_rotSpeed);
 
-        // Apply rotations to eye position around the look point
         glm::vec3 eyeToLook = m_eye - m_look;
         eyeToLook = rotMatV * rotMatH * eyeToLook;
 
-        // Restore original distance
         m_eye = m_look + glm::normalize(eyeToLook) * distanceToLook;
 
-        // Update look direction
         m_up = rotMatV * rotMatH * m_up;
 
         rebuildMatrices();
@@ -389,6 +364,6 @@ void GLRenderer::rebuildMatrices()
 {
     // Update view matrix by rotating eye vector based on x and y angles
     m_view = glm::lookAt(m_eye, m_look, m_up);
-    m_proj = glm::perspective(glm::radians(45.0), 1.0 * width() / height(), 0.01, 100.0);
+    m_proj = glm::perspective(glm::radians(90.0), 1.0 * width() / height(), 0.01, 100.0);
     update();
 }

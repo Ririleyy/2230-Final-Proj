@@ -19,7 +19,7 @@ GLRenderer::GLRenderer(QWidget *parent)
       m_zoom(2)
 {
     setFocusPolicy(Qt::StrongFocus);
-    m_eye = glm::vec3(3, 0, 0);
+    m_eye = glm::vec3(1, 0, 0);
     m_look = glm::vec3(-3, 0, 0);
     m_up = glm::vec3(0, 1, 0);
     m_keyMap[Qt::Key_W] = false;
@@ -45,9 +45,10 @@ GLRenderer::~GLRenderer()
 
 glm::vec4 sphericalToCartesian(float phi, float theta)
 {
-    return glm::vec4(glm::cos(theta) * glm::sin(phi),
-                     glm::sin(theta) * glm::sin(phi),
-                     glm::cos(phi), 1);
+    return glm::vec4(glm::sin(phi) * glm::cos(theta),
+                     glm::cos(phi),                    // Y component should use cos(phi) directly
+                     glm::sin(phi) * glm::sin(theta),
+                     1);
 }
 
 void pushVec3(glm::vec4 vec, std::vector<float> *data)
@@ -70,6 +71,42 @@ std::vector<float> generateSphereData(int phiTesselations, int thetaTesselations
         {
             float phi1 = 1.0 * iPhi / phiTesselations * glm::pi<float>();
             float phi2 = 1.0 * (iPhi + 1) / phiTesselations * glm::pi<float>();
+
+            float the1 = 1.0 * iTheta / thetaTesselations * 2 * glm::pi<float>();
+            float the2 = 1.0 * (iTheta + 1) / thetaTesselations * 2 * glm::pi<float>();
+
+            glm::vec4 p1 = sphericalToCartesian(phi1, the1);
+            glm::vec4 p2 = sphericalToCartesian(phi2, the1);
+            glm::vec4 p3 = sphericalToCartesian(phi2, the2);
+            glm::vec4 p4 = sphericalToCartesian(phi1, the2);
+
+            pushVec3(p1, &data);
+            pushVec3(p2, &data);
+            pushVec3(p3, &data);
+
+            pushVec3(p1, &data);
+            pushVec3(p3, &data);
+            pushVec3(p4, &data);
+        }
+    }
+
+    return data;
+}
+
+std::vector<float> generateDomeData(int phiTesselations, int thetaTesselations)
+{
+    std::vector<float> data;
+
+    data.clear();
+    data.reserve(phiTesselations * thetaTesselations * 6 * 3);
+
+    for (int iTheta = 0; iTheta < thetaTesselations; iTheta++)
+    {
+        for (int iPhi = 0; iPhi < phiTesselations; iPhi++)
+        {
+            // Changed the phi range to go from 0 to π/2 instead of 0 to π
+            float phi1 = 1.0 * iPhi / phiTesselations * (glm::pi<float>() / 2.0f);
+            float phi2 = 1.0 * (iPhi + 1) / phiTesselations * (glm::pi<float>() / 2.0f);
 
             float the1 = 1.0 * iTheta / thetaTesselations * 2 * glm::pi<float>();
             float the2 = 1.0 * (iTheta + 1) / thetaTesselations * 2 * glm::pi<float>();
@@ -120,7 +157,8 @@ void GLRenderer::initializeGL()
     glGenBuffers(1, &m_sphere_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
     // Generate sphere data
-    m_sphereData = generateSphereData(10, 20);
+    m_sphereData = generateDomeData(50, 50);
+    m_model = glm::scale(m_model, glm::vec3(50, 50, 50));
     // Send data to VBO
     glBufferData(GL_ARRAY_BUFFER, m_sphereData.size() * sizeof(GLfloat), m_sphereData.data(), GL_STATIC_DRAW);
     // Generate, and bind vao
@@ -195,7 +233,12 @@ void GLRenderer::mousePressEvent(QMouseEvent *event)
     // Set initial mouse position
     if (event->buttons().testFlag(Qt::LeftButton))
     {
-        m_mouseDown = true;
+        m_mouseDown = MouseStaus::LEFT;
+        m_prev_mouse_pos = glm::vec2(event->position().x(), event->position().y());
+    }
+    else if (event->buttons().testFlag(Qt::RightButton))
+    {
+        m_mouseDown = MouseStaus::RIGHT;
         m_prev_mouse_pos = glm::vec2(event->position().x(), event->position().y());
     }
 }
@@ -210,7 +253,7 @@ void GLRenderer::mousePressEvent(QMouseEvent *event)
 
 void GLRenderer::mouseMoveEvent(QMouseEvent *event)
 {
-    if (m_mouseDown)
+    if (m_mouseDown == MouseStaus::LEFT)
     {
         int posX = event->position().x();
         int posY = event->position().y();
@@ -222,9 +265,42 @@ void GLRenderer::mouseMoveEvent(QMouseEvent *event)
         glm::vec3 up = m_up;
         glm::vec3 rotAxisH = glm::vec3(0, 1, 0);
         glm::vec3 rotAxisV = glm::normalize(glm::cross(look, up));
-        glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, -deltaX * m_rotSpeed);
+        glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, deltaX * m_rotSpeed);
         glm::mat3 rotMatV = Camera::getRotationMatrix(rotAxisV, -deltaY * m_rotSpeed);
         m_look = rotMatV * rotMatH * look;
+        rebuildMatrices();
+    }
+    else if (m_mouseDown == MouseStaus::RIGHT)
+    {
+        // New right-click orbiting logic
+        int posX = event->position().x();
+        int posY = event->position().y();
+        int deltaX = posX - m_prev_mouse_pos.x;
+        int deltaY = posY - m_prev_mouse_pos.y;
+        m_prev_mouse_pos = glm::vec2(posX, posY);
+
+        // Calculate distance from eye to look point
+        float distanceToLook = glm::length(m_eye - m_look);
+
+        // Horizontal rotation (around world up vector)
+        glm::vec3 rotAxisH = glm::vec3(0, 1, 0);
+        glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, -deltaX * m_rotSpeed);
+
+        // Vertical rotation (around perpendicular axis)
+        glm::vec3 lookDir = glm::normalize(m_look - m_eye);
+        glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
+        glm::mat3 rotMatV = Camera::getRotationMatrix(rightDir, deltaY * m_rotSpeed);
+
+        // Apply rotations to eye position around the look point
+        glm::vec3 eyeToLook = m_eye - m_look;
+        eyeToLook = rotMatV * rotMatH * eyeToLook;
+
+        // Restore original distance
+        m_eye = m_look + glm::normalize(eyeToLook) * distanceToLook;
+
+        // Update look direction
+        m_up = rotMatV * rotMatH * m_up;
+
         rebuildMatrices();
     }
 }
@@ -233,7 +309,7 @@ void GLRenderer::mouseReleaseEvent(QMouseEvent *event)
 {
     if (!event->buttons().testFlag(Qt::LeftButton))
     {
-        m_mouseDown = false;
+        m_mouseDown = MouseStaus::NONE;
     }
 }
 
@@ -260,10 +336,10 @@ void GLRenderer::timerEvent(QTimerEvent *event)
     float deltaTime = elapsedms * 0.001f;
     m_elapsedTimer.restart();
 
-// Calculate normalized look direction and right vector
+    // Calculate normalized look direction and right vector
     glm::vec3 lookDir = glm::normalize(m_look - m_eye);
     glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
-    
+
     // Calculate movement vectors
     glm::vec3 moveFront = m_translSpeed * deltaTime * lookDir;
     glm::vec3 moveRight = m_translSpeed * deltaTime * rightDir;

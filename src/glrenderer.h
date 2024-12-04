@@ -16,6 +16,12 @@
 
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
+enum class MouseStaus
+{
+    NONE,
+    LEFT,
+    RIGHT
+};
 class GLRenderer : public QOpenGLWidget
 {
 public:
@@ -66,7 +72,7 @@ private:
     std::unordered_map<Qt::Key, bool> m_keyMap;
     int m_timer; 
 
-    bool m_mouseDown = false;
+    MouseStaus m_mouseDown = MouseStaus::NONE;
     glm::vec2 m_prev_mouse_pos;
     const float m_rotSpeed = 0.005;
     const float m_translSpeed = 5;

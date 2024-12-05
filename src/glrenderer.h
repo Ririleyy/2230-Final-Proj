@@ -43,7 +43,8 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;   
     void keyReleaseEvent(QKeyEvent *event) override; 
     void timerEvent(QTimerEvent *event) override;    
-    void rebuildMatrices();                          
+    void rebuildMatrices();   
+    void timeToSunPos(const float time);
 
 public slots:
     void tick(QTimerEvent *event); // Called once per tick of m_timer
@@ -60,6 +61,7 @@ private:
     glm::mat4 m_model = glm::mat4(1);
     glm::mat4 m_view = glm::mat4(1);
     glm::mat4 m_proj = glm::mat4(1);
+    float m_fov = 45.0f;
 
     // QPoint m_prevMousePos;
     glm::vec2 m_prev_mouse_pos;

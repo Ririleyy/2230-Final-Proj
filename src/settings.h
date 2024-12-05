@@ -7,6 +7,8 @@ struct Settings {
     std::string sceneFilePath;
     float azimuth = 0.0f;
     float elevation = 0.0f;
+    float fov = 45.0f;
+    float time = 0.0f;
 };
 
 

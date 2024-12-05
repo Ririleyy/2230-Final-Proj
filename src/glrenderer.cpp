@@ -43,7 +43,7 @@ GLRenderer::~GLRenderer()
 glm::vec4 sphericalToCartesian(float phi, float theta)
 {
     return glm::vec4(glm::sin(phi) * glm::cos(theta),
-                     glm::cos(phi),                    // Y component should use cos(phi) directly
+                     glm::cos(phi), // Y component should use cos(phi) directly
                      glm::sin(phi) * glm::sin(theta),
                      1);
 }
@@ -147,7 +147,6 @@ void GLRenderer::initializeGL()
     glEnable(GL_DEPTH_TEST);
 
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
-    m_sunPos = glm::vec2(glm::radians(settings.elevation), glm::radians(settings.azimuth));
     // Generate and bind VBO
     glGenBuffers(1, &m_sphere_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
@@ -193,21 +192,40 @@ void GLRenderer::paintGL()
 
     glBindVertexArray(0);
     glUseProgram(0);
-
 }
 
 void GLRenderer::settingsChanged()
 {
     makeCurrent();
-    m_sunPos = glm::vec2(glm::radians(settings.elevation), glm::radians(settings.azimuth));
+    timeToSunPos(settings.time);
+    m_fov = settings.fov;
+    rebuildMatrices();
     update(); // asks for a PaintGL() call to occur
+}
+
+void GLRenderer::timeToSunPos(const float time)
+{
+    float azimuth, zenith;
+    if (time >= 0 && time <= 12)
+    {
+        azimuth = glm::radians(0.0f);
+        zenith = glm::radians(180.0f - 15.0f * time);
+    }
+    else
+    {
+        azimuth = glm::radians(180.0f);
+        zenith = glm::radians(15.0f * (time - 12));
+    }
+    zenith = glm::min(zenith, glm::radians(120.0f));
+    // std::cout << "Time: " << time << " Zenith: " << glm::degrees(m_sunPos.x) << " Azimuth: " << glm::degrees(m_sunPos.y) << std::endl;
+    m_sunPos = glm::vec2(azimuth, zenith);
 }
 
 // ================== Other stencil code
 
 void GLRenderer::resizeGL(int w, int h)
 {
-    m_proj = glm::perspective(glm::radians(45.0), 1.0 * w / h, 0.01, 100.0);
+    m_proj = glm::perspective(glm::radians(m_fov), 1.0f * w / h, 0.01f, 1000.0f);
 }
 
 void GLRenderer::mousePressEvent(QMouseEvent *event)
@@ -364,6 +382,6 @@ void GLRenderer::rebuildMatrices()
 {
     // Update view matrix by rotating eye vector based on x and y angles
     m_view = glm::lookAt(m_eye, m_look, m_up);
-    m_proj = glm::perspective(glm::radians(90.0), 1.0 * width() / height(), 0.01, 100.0);
+    m_proj = glm::perspective(glm::radians(m_fov), 1.0f * width() / height(), 0.01f, 1000.0f);
     update();
 }

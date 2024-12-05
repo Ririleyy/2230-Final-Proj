@@ -13,6 +13,7 @@
 #include <QMouseEvent>
 #include "glm/glm.hpp"
 #include "utils/camera.h"
+#include "utils/terrain.h"
 
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
@@ -80,5 +81,16 @@ private:
 
     const float m_rotSpeed = 0.005;
     const float m_translSpeed = 5;
+
+    //terrain
+    GLuint m_terrain_shader;
+    GLuint m_terrainVao; // Vertex Array Object
+    GLuint m_terrainVbo; // Vertex Buffer Object
+    std::vector<GLfloat> m_terrainData; // Store terrain vertex data
+    TerrainGenerator m_terrain;
+
+    void bindTerrainVaoVbo();
+    void paintTerrain();
+    void paintDome();
 
 };

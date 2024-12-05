@@ -35,6 +35,11 @@ add_executable(${PROJECT_NAME}
     src/shaderloader.h
     src/utils/camera.h
     src/settings.h
+    src/utils/terrain.h src/utils/terrain.cpp
+    resources/shaders/terrain.vert
+    resources/shaders/terrain.frag
+
+
 )
 # Specifies other files
 qt_add_resources(${PROJECT_NAME} "Resources"

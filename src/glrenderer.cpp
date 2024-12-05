@@ -9,6 +9,7 @@
 #include "glm/gtx/transform.hpp"
 #include "settings.h"
 
+
 GLRenderer::GLRenderer(QWidget *parent)
     : QOpenGLWidget(parent),
       m_angleX(6),
@@ -25,7 +26,7 @@ GLRenderer::GLRenderer(QWidget *parent)
     m_keyMap[Qt::Key_D] = false;
     m_keyMap[Qt::Key_Control] = false;
     m_keyMap[Qt::Key_Space] = false;
-    rebuildMatrices();
+    rebuildMatrices();       // Terrain generator instance
 }
 
 GLRenderer::~GLRenderer()
@@ -147,32 +148,72 @@ void GLRenderer::initializeGL()
     glEnable(GL_DEPTH_TEST);
 
     m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
-    // Generate and bind VBO
+    m_terrain_shader = ShaderLoader::createShaderProgram("resources/shaders/terrain.vert", "resources/shaders/terrain.frag");
     glGenBuffers(1, &m_sphere_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
-    // Generate sphere data
     m_sphereData = generateDomeData(50, 50);
     m_model = glm::scale(m_model, glm::vec3(50, 50, 50));
-    // Send data to VBO
     glBufferData(GL_ARRAY_BUFFER, m_sphereData.size() * sizeof(GLfloat), m_sphereData.data(), GL_STATIC_DRAW);
-    // Generate, and bind vao
     glGenVertexArrays(1, &m_sphere_vao);
     glBindVertexArray(m_sphere_vao);
-
-    // Enable and define attribute 0 to store vertex positions
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void *>(0));
 
-    // Clean-up bindings
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    bindTerrainVaoVbo();
+
+}
+
+void GLRenderer::bindTerrainVaoVbo(){
+
+    glUseProgram(m_terrain_shader);
+
+    // Terrain VAO and VBO setup
+    glGenVertexArrays(1, &m_terrainVao);
+    glBindVertexArray(m_terrainVao);
+
+    // Generate terrain data
+    m_terrainData = m_terrain.generateTerrain();
+
+    // Generate and bind VBO
+    glGenBuffers(1, &m_terrainVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_terrainVbo);
+    glBufferData(GL_ARRAY_BUFFER, m_terrainData.size() * sizeof(GLfloat), m_terrainData.data(), GL_STATIC_DRAW);
+
+    // Configure vertex attributes
+    glEnableVertexAttribArray(0); // Vertex position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+
+    glEnableVertexAttribArray(1); // Vertex normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+
+    glEnableVertexAttribArray(2); // Vertex color
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(6 * sizeof(GLfloat)));
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(0);
+
 }
 
 void GLRenderer::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBindVertexArray(m_sphere_vao);
+
+    paintDome();
+
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    paintTerrain();
+
+
+}
+void GLRenderer::paintDome(){
+
     glUseProgram(m_shader);
+    glBindVertexArray(m_sphere_vao);
 
     GLint modelLoc = glGetUniformLocation(m_shader, "model");
     GLint viewLoc = glGetUniformLocation(m_shader, "view");
@@ -192,6 +233,30 @@ void GLRenderer::paintGL()
 
     glBindVertexArray(0);
     glUseProgram(0);
+
+}
+
+void GLRenderer::paintTerrain(){
+    glUseProgram(m_terrain_shader);
+
+    glBindVertexArray(m_terrainVao);
+
+    // Set up the model, view, and projection matrices
+    glm::mat4 terrainModel = glm::mat4(1.0f);
+    terrainModel = glm::translate(terrainModel, glm::vec3(0.0f, -0.5f, 0.0f)); // Adjust terrain position
+
+    terrainModel = glm::rotate(terrainModel, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &terrainModel[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
+
+    // Draw terrain
+    glDrawArrays(GL_TRIANGLES, 0, m_terrainData.size() / 9);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+
 }
 
 void GLRenderer::settingsChanged()

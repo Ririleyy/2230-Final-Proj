@@ -188,6 +188,9 @@ void GLRenderer::paintGL()
     GLint sunPosLoc = glGetUniformLocation(m_shader, "sunPosition");
     glUniform2fv(sunPosLoc, 1, &m_sunPos[0]);
 
+    GLint tPosLoc = glGetUniformLocation(m_shader, "T");
+    glUniform1f(tPosLoc, settings.T);
+
     glDrawArrays(GL_TRIANGLES, 0, m_sphereData.size() / 3);
 
     glBindVertexArray(0);

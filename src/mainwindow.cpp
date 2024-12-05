@@ -29,6 +29,8 @@ MainWindow::MainWindow()
     fov_label->setText("Field of View:");
     QLabel *time_label = new QLabel();
     time_label->setText("Time:");
+    QLabel *turbidity_label = new QLabel();
+    turbidity_label->setText("Turbidity:");
 
     // Create parameter layouts
     // QGroupBox *p1Layout = new QGroupBox();
@@ -39,12 +41,15 @@ MainWindow::MainWindow()
     QHBoxLayout *lfov = new QHBoxLayout();
     QGroupBox *timeLayout = new QGroupBox();
     QHBoxLayout *ltime = new QHBoxLayout();
+    QGroupBox *turbidityLayout = new QGroupBox();
+    QHBoxLayout *lturbidity = new QHBoxLayout();
 
     // Create sliders and spinboxes
     // createSliderSpinbox(p1Slider, p1Box, 0, 180, 0);
     // createSliderSpinbox(p2Slider, p2Box, 0, 360, 0);
     createSliderSpinbox(fovSlider, fovBox, 10, 179, 45);
     createSliderSpinbox(timeSlider, timeBox, 0, 24, 12);
+    createSliderSpinbox(turbiditySlider, turbidityBox, 1, 10, 1);
 
     // Add widgets to layouts
     // l1->addWidget(p1Slider);
@@ -63,6 +68,10 @@ MainWindow::MainWindow()
     ltime->addWidget(timeBox);
     timeLayout->setLayout(ltime);
 
+    lturbidity->addWidget(turbiditySlider);
+    lturbidity->addWidget(turbidityBox);
+    turbidityLayout->setLayout(lturbidity);
+
     // Add everything to vertical layout
     // vLayout->addWidget(param1_label);
     // vLayout->addWidget(p1Layout);
@@ -72,6 +81,9 @@ MainWindow::MainWindow()
     vLayout->addWidget(fovLayout);
     vLayout->addWidget(time_label);
     vLayout->addWidget(timeLayout);
+    vLayout->addWidget(turbidity_label);
+    vLayout->addWidget(turbidityLayout);
+
 
 
 
@@ -98,6 +110,7 @@ void MainWindow::connectUIElements() {
     // connectParam2();
     connectFov();
     connectTime();
+    connectTurbidity();
 }
 
 void MainWindow::connectTime() {
@@ -106,6 +119,11 @@ void MainWindow::connectTime() {
             this, &MainWindow::onValChangeTime);
 }
 
+void MainWindow::connectTurbidity() {
+    connect(turbiditySlider, &QSlider::valueChanged, this, &MainWindow::onValChangeTurbidity);
+    connect(turbidityBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            this, &MainWindow::onValChangeTurbidity);
+}
 
 // void MainWindow::connectParam1() {
 //     connect(p1Slider, &QSlider::valueChanged, this, &MainWindow::onValChangeP1);
@@ -136,6 +154,13 @@ void MainWindow::onValChangeFov(int newValue) {
     fovSlider->setValue(newValue);
     fovBox->setValue(newValue);
     settings.fov = fovSlider->value();
+    glRenderer->settingsChanged();
+}
+
+void MainWindow::onValChangeTurbidity(int newValue) {
+    turbiditySlider->setValue(newValue);
+    turbidityBox->setValue(newValue);
+    settings.T = turbiditySlider->value();
     glRenderer->settingsChanged();
 }
 

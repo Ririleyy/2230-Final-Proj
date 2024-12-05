@@ -9,6 +9,7 @@ struct Settings {
     float elevation = 0.0f;
     float fov = 45.0f;
     float time = 0.0f;
+    float T = 2.0f;
 };
 
 

@@ -3,29 +3,10 @@
 in vec3 worldPos;
 out vec4 fragColor;
 
-#define T 2.3
 #define M_PI 3.1415926535897932384626433832795
 
-uniform vec2 sunPosition; // You'll need to pass this from your application
-
-// Preetham model parameters
-float A_x = -0.0193 * T - 0.2592;
-float B_x = -0.0665 * T + 0.0008;
-float C_x = -0.0004 * T + 0.2125;
-float D_x = -0.0641 * T - 0.8989;
-float E_x = -0.0033 * T + 0.0452;
-
-float A_y = -0.0167 * T - 0.2608;
-float B_y = -0.0950 * T + 0.0092;
-float C_y = -0.0079 * T + 0.2102;
-float D_y = -0.0441 * T - 1.6537;
-float E_y = -0.0109 * T + 0.0529;
-
-float A_Y = 0.1787 * T - 1.4630;
-float B_Y = -0.3554 * T + 0.4275;
-float C_Y = -0.0227 * T + 5.3251;
-float D_Y = 0.1206 * T - 2.5771;
-float E_Y = -0.0670 * T + 0.3703;
+uniform vec2 sunPosition;
+uniform float T;
 
 mat4x3 x_chromaticity = mat4x3(
     0.0017, -0.0290, 0.1169,
@@ -87,12 +68,30 @@ vec3 tonemap(vec3 color, float exposure) {
 }
 
 void main() {
+    // Calculate T-dependent coefficients
+    float A_x = -0.0193 * T - 0.2592;
+    float B_x = -0.0665 * T + 0.0008;
+    float C_x = -0.0004 * T + 0.2125;
+    float D_x = -0.0641 * T - 0.8989;
+    float E_x = -0.0033 * T + 0.0452;
+
+    float A_y = -0.0167 * T - 0.2608;
+    float B_y = -0.0950 * T + 0.0092;
+    float C_y = -0.0079 * T + 0.2102;
+    float D_y = -0.0441 * T - 1.6537;
+    float E_y = -0.0109 * T + 0.0529;
+
+    float A_Y = 0.1787 * T - 1.4630;
+    float B_Y = -0.3554 * T + 0.4275;
+    float C_Y = -0.0227 * T + 5.3251;
+    float D_Y = 0.1206 * T - 2.5771;
+    float E_Y = -0.0670 * T + 0.3703;
+
     // Convert world position to spherical coordinates
     vec3 nPos = normalize(worldPos);
-    float pixel_distance = acos(nPos.y); // zenith angle
-    float pixel_angle = atan(nPos.x, nPos.z); // azimuth angle
+    float pixel_distance = acos(nPos.y);
+    float pixel_angle = atan(nPos.x, nPos.z);
     
-    // Sun position (from uniform)
     float sun_zenith = sunPosition.y;
     float sun_azimuth = sunPosition.x;
     

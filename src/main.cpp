@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    QCoreApplication::setApplicationName("Lab 10: Shaders");
+    QCoreApplication::setApplicationName("Nature Werks");
     QCoreApplication::setOrganizationName("CS 1230");
     QCoreApplication::setApplicationVersion(QT_VERSION_STR);
 
@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 
     MainWindow w;
     // w.resize(w.sizeHint());
-    w.resize(600, 600);
+    w.resize(2000, 1080);
     int desktopArea = QGuiApplication::primaryScreen()->size().width() *
                       QGuiApplication::primaryScreen()->size().height();
     int widgetArea = w.width() * w.height();

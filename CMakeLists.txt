@@ -28,11 +28,13 @@ add_executable(${PROJECT_NAME}
     src/glrenderer.cpp
     src/mainwindow.cpp
     src/utils/camera.cpp
-
+    src/settings.cpp
+  
     src/glrenderer.h
     src/mainwindow.h
     src/shaderloader.h
     src/utils/camera.h
+    src/settings.h
 )
 # Specifies other files
 qt_add_resources(${PROJECT_NAME} "Resources"

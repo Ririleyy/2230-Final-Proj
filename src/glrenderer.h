@@ -30,6 +30,7 @@ public:
     GLRenderer(QWidget *parent = nullptr);
     void settingsChanged();
     void setWeatherType(bool isSnow);
+    void setWeatherEnabled(bool enabled) { m_weatherEnabled = enabled; }
     ~GLRenderer();
 
 protected:

@@ -58,7 +58,6 @@ void ParticleSystem::resetParticle(Particle& particle, bool randomizeHeight) {
 
 void ParticleSystem::update(float deltaTime) {
     const float GROUND_LEVEL = -20.0f;
-
     for (auto& particle : particles) {
         if (!particle.active) {
             resetParticle(particle);
@@ -66,30 +65,23 @@ void ParticleSystem::update(float deltaTime) {
         }
 
         if (isSnow) {
-            // Snow movement with gentle swaying
             float swayX = std::sin(particle.position.y() * 0.05f + particle.life * 2.0f) * 0.3f;
             float swayZ = std::cos(particle.position.y() * 0.05f + particle.life * 2.0f) * 0.3f;
-
             particle.velocity += windDirection * (deltaTime * 0.5f);
             particle.position += particle.velocity * deltaTime;
             particle.position += QVector3D(swayX, 0, swayZ) * deltaTime;
 
-            // Only reset snow when it hits the ground, don't reduce life
             if (particle.position.y() < GROUND_LEVEL) {
-                resetParticle(particle);
+                resetParticle(particle, true); // Always randomize height when resetting
             }
+
         } else {
-            // Rain falls straight and fast
-            if (particle.velocity.y() > -40.0f) {
-                particle.velocity.setY(particle.velocity.y() - 9.81f * deltaTime);
-            }
-
             particle.position += particle.velocity * deltaTime;
-            particle.life -= deltaTime * 0.3f;  // Keep life reduction for rain only
 
-            if (particle.life <= 0.0f || particle.position.y() < GROUND_LEVEL) {
-                resetParticle(particle);
+            if (particle.position.y() < GROUND_LEVEL) {
+                resetParticle(particle, true); // Always randomize height when resetting
             }
+
         }
     }
 }

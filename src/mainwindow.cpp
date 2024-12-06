@@ -63,10 +63,13 @@ void MainWindow::createWeatherControls() {
     QGroupBox *weatherBox = new QGroupBox(this);
     QVBoxLayout *weatherLayout = new QVBoxLayout(weatherBox);
 
+    noWeatherButton = new QRadioButton("No Weather", this);
     snowButton = new QRadioButton("Snow", this);
     rainButton = new QRadioButton("Rain", this);
+
     snowButton->setChecked(true);
 
+    weatherLayout->addWidget(noWeatherButton);
     weatherLayout->addWidget(snowButton);
     weatherLayout->addWidget(rainButton);
 
@@ -75,18 +78,28 @@ void MainWindow::createWeatherControls() {
 }
 
 void MainWindow::setupWeatherControls() {
-    if (!snowButton || !rainButton || !glRenderer) return;
+    if (!noWeatherButton || !snowButton || !rainButton || !glRenderer) return;
 
+    connect(noWeatherButton, &QRadioButton::toggled,
+            this, &MainWindow::onWeatherTypeChanged,
+            Qt::ConnectionType::QueuedConnection);
+    connect(rainButton, &QRadioButton::toggled,
+            this, &MainWindow::onWeatherTypeChanged,
+            Qt::ConnectionType::QueuedConnection);
     connect(snowButton, &QRadioButton::toggled,
             this, &MainWindow::onWeatherTypeChanged,
             Qt::ConnectionType::QueuedConnection);
 }
 
 void MainWindow::onWeatherTypeChanged() {
-    if (!snowButton || !glRenderer) return;
+    if (!glRenderer) return;
 
-    bool isSnow = snowButton->isChecked();
-    glRenderer->setWeatherType(isSnow);
+    if (noWeatherButton->isChecked()) {
+        glRenderer->setWeatherEnabled(false);
+    } else {
+        glRenderer->setWeatherEnabled(true);
+        glRenderer->setWeatherType(snowButton->isChecked());
+    }
 }
 
 void MainWindow::createSliderSpinbox(QSlider *&slider, QSpinBox *&spinbox, int min, int max, int defaultVal) {

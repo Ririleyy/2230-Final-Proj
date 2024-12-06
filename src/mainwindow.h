@@ -32,6 +32,7 @@ private:
     QRadioButton *snowButton;
     QRadioButton *rainButton;
     QVBoxLayout *vLayout;
+    QRadioButton *noWeatherButton;
 
     // Helper methods
     void createWeatherControls();

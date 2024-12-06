@@ -105,4 +105,9 @@ private:
     GLuint m_terrainVbo;
     std::vector<GLfloat> m_terrainData;
     TerrainGenerator m_terrain;
+    void bindTerrainTexture();
+    QImage m_image;
+    GLuint m_textureID;
+    void bindTexture();
+    int textureLocation;
 };

@@ -179,6 +179,7 @@ void GLRenderer::initializeGL()
 
         // Initialize terrain
         bindTerrainVaoVbo();
+        bindTerrainTexture();
 
         // Initialize particle system
         initializeParticleSystem();
@@ -234,6 +235,16 @@ void GLRenderer::bindTerrainVaoVbo(){
 
     // Generate terrain data
     m_terrainData = m_terrain.generateTerrain();
+    // std::cout << "m_terrainData size: " << m_terrainData.size() << std::endl;
+    // for (size_t i = 0; i < m_terrainData.size(); ++i) {
+    //     std::cout << std::fixed << std::setprecision(6) << m_terrainData[i] << " ";
+
+    //     // Add formatting for readability (e.g., print new line after every 11 floats)
+    //     if ((i + 1) % 11 == 0) {
+    //         std::cout << std::endl; // New line after one vertex's data (if 11 floats per vertex)
+    //     }
+    // }
+    // std::cout << std::endl;
 
     // Generate and bind VBO
     glGenBuffers(1, &m_terrainVbo);
@@ -242,16 +253,56 @@ void GLRenderer::bindTerrainVaoVbo(){
 
     // Configure vertex attributes
     glEnableVertexAttribArray(0); // Vertex position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(0));
 
     glEnableVertexAttribArray(1); // Vertex normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
 
     glEnableVertexAttribArray(2); // Vertex color
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(6 * sizeof(GLfloat)));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(6 * sizeof(GLfloat)));
+
+    glEnableVertexAttribArray(3); // uv
+
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat),
+                          reinterpret_cast<void *>(9 * sizeof(GLfloat)));
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(0);
+
+}
+void GLRenderer::bindTerrainTexture(){
+
+    glUseProgram(m_terrain_shader);
+
+    QString kitten_filepath = QString(":/resources/images/2.jpg");
+    if (!m_image.load(kitten_filepath)) {
+        std::cerr << "Failed to load texture: " << kitten_filepath.toStdString() << std::endl;
+        return;
+    }
+
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888); // Ensure format compatibility
+
+    // Task 2: Generate texture
+    glGenTextures(1, &m_textureID);
+    // Task 9: Set the active texture slot to texture slot 0
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindTexture(GL_TEXTURE_2D, m_textureID);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+
+    glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture
+
     glUseProgram(0);
 
 }
@@ -264,12 +315,12 @@ void GLRenderer::paintGL()
     paintTerrain();
 
     // Paint dome
-    paintDome();
+    //paintDome();
 
     // Paint particles last for proper transparency
-    if (m_weatherEnabled && m_particleSystem) {
-        renderParticles();
-    }
+    // if (m_weatherEnabled && m_particleSystem) {
+    //     renderParticles();
+    // }
 }
 
 void GLRenderer::renderParticles() {
@@ -398,8 +449,19 @@ void GLRenderer::paintTerrain(){
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
 
-    // Draw terrain
-    glDrawArrays(GL_TRIANGLES, 0, m_terrainData.size() / 9);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_textureID);
+    textureLocation = glGetUniformLocation(m_terrain_shader, "texture1");
+    glUniform1i(textureLocation, 0);
+
+
+
+    int res = m_terrain.getResolution();
+    glBindVertexArray(m_terrainVao);  // Bind VAO
+    //glDrawArrays(GL_TRIANGLES, 0,  m_terrainData.size() / 11);  // Use correct vertex count
+    glDrawArrays(GL_TRIANGLES, 0,  res*res*6);
+    glBindVertexArray(0);
 
     glBindVertexArray(0);
     glUseProgram(0);

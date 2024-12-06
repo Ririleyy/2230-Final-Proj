@@ -275,7 +275,7 @@ void GLRenderer::bindTerrainTexture(){
 
     glUseProgram(m_terrain_shader);
 
-    QString kitten_filepath = QString(":/resources/images/indian-travel-destination-beautiful-attractive.jpg");
+    QString kitten_filepath = QString(":/resources/images/2.jpg");
     if (!m_image.load(kitten_filepath)) {
         std::cerr << "Failed to load texture: " << kitten_filepath.toStdString() << std::endl;
         return;
@@ -315,12 +315,12 @@ void GLRenderer::paintGL()
     paintTerrain();
 
     // Paint dome
-    //paintDome();
+    paintDome();
 
     // Paint particles last for proper transparency
-    // if (m_weatherEnabled && m_particleSystem) {
-    //     renderParticles();
-    // }
+    if (m_weatherEnabled && m_particleSystem) {
+        renderParticles();
+    }
 }
 
 void GLRenderer::renderParticles() {
@@ -443,7 +443,7 @@ void GLRenderer::paintTerrain(){
     glm::mat4 terrainModel = glm::mat4(1.0f);
     terrainModel = glm::translate(terrainModel, glm::vec3(0.0f, -0.5f, 0.0f)); // Adjust terrain position
 
-    terrainModel = glm::rotate(terrainModel, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    terrainModel = glm::rotate(terrainModel, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &terrainModel[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);

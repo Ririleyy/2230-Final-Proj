@@ -47,8 +47,8 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   PREFIX
   "/"
   FILES
-  resources/shaders/default.vert
-  resources/shaders/default.frag
+  resources/shaders/skydome.vert
+  resources/shaders/skydome.frag
   resources/shaders/terrain.vert
   resources/shaders/terrain.frag
   resources/shaders/particle.frag

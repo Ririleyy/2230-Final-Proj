@@ -70,7 +70,7 @@ private:
     bool m_weatherEnabled = true;
 
     // OpenGL objects
-    GLuint m_shader;
+    GLuint m_skydome_shader;
     GLuint m_sphere_vbo;
     GLuint m_sphere_vao;
     std::vector<float> m_sphereData;

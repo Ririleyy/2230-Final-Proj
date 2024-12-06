@@ -44,7 +44,7 @@ GLRenderer::~GLRenderer()
     // Delete dome resources
     glDeleteBuffers(1, &m_sphere_vbo);
     glDeleteVertexArrays(1, &m_sphere_vao);
-    if (m_shader) glDeleteProgram(m_shader);
+    if (m_skydome_shader) glDeleteProgram(m_skydome_shader);
 
     // Delete particle resources
     if (m_particle_vbo) glDeleteBuffers(1, &m_particle_vbo);
@@ -162,7 +162,7 @@ void GLRenderer::initializeGL()
 
     try {
         // Initialize shaders
-        m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
+        m_skydome_shader = ShaderLoader::createShaderProgram(":/resources/shaders/skydome.vert", ":/resources/shaders/skydome.frag");
         m_terrain_shader = ShaderLoader::createShaderProgram(":/resources/shaders/terrain.vert", ":/resources/shaders/terrain.frag");
         m_particle_shader = ShaderLoader::createShaderProgram(":/resources/shaders/particle.vert", ":/resources/shaders/particle.frag");
 
@@ -355,24 +355,24 @@ void GLRenderer::timerEvent(QTimerEvent *event)
 
 void GLRenderer::paintDome(){
 
-    glUseProgram(m_shader);
+    glUseProgram(m_skydome_shader);
     glBindVertexArray(m_sphere_vao);
 
-    GLint modelLoc = glGetUniformLocation(m_shader, "model");
-    GLint viewLoc = glGetUniformLocation(m_shader, "view");
-    GLint projLoc = glGetUniformLocation(m_shader, "projection");
+    GLint modelLoc = glGetUniformLocation(m_skydome_shader, "model");
+    GLint viewLoc = glGetUniformLocation(m_skydome_shader, "view");
+    GLint projLoc = glGetUniformLocation(m_skydome_shader, "projection");
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &m_model[0][0]);
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, &m_proj[0][0]);
 
     glm::vec4 cameraPos = glm::vec4(glm::inverse(m_view)[3]);
-    GLint camPosLoc = glGetUniformLocation(m_shader, "camPos");
+    GLint camPosLoc = glGetUniformLocation(m_skydome_shader, "camPos");
     glUniform4fv(camPosLoc, 1, &cameraPos[0]);
 
-    GLint sunPosLoc = glGetUniformLocation(m_shader, "sunPosition");
+    GLint sunPosLoc = glGetUniformLocation(m_skydome_shader, "sunPosition");
     glUniform2fv(sunPosLoc, 1, &m_sunPos[0]);
 
-    GLint tPosLoc = glGetUniformLocation(m_shader, "T");
+    GLint tPosLoc = glGetUniformLocation(m_skydome_shader, "T");
     float turbidity = (settings.weather == WeatherType::CLEAR) ? 2.0f : 10.0f;
     glUniform1f(tPosLoc, turbidity);
 

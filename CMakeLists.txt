@@ -38,6 +38,7 @@ add_executable(${PROJECT_NAME}
     src/utils/terrain.h src/utils/terrain.cpp
     resources/shaders/terrain.vert
     resources/shaders/terrain.frag
+    src/utils/particle.h src/utils/particle.cpp
 
 
 )
@@ -50,6 +51,8 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/shaders/default.frag
   resources/shaders/terrain.vert
   resources/shaders/terrain.frag
+  resources/shaders/particle.frag
+  resources/shaders/particle.vert
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`

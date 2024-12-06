@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include "glm/glm.hpp"
+#include <iostream>
 
 // Constructor
 TerrainGenerator::TerrainGenerator()
@@ -34,71 +35,82 @@ TerrainGenerator::~TerrainGenerator()
     m_randVecLookup.clear();
 }
 
-// Helper for generateTerrain()
-void addPointToVector(glm::vec3 point, std::vector<float>& vector) {
+void addPointToVector(glm::vec3 point, glm::vec3 normal, glm::vec3 color, glm::vec2 uv, std::vector<float>& vector) {
     vector.push_back(point.x);
     vector.push_back(point.y);
     vector.push_back(point.z);
-}
 
+    vector.push_back(normal.x);
+    vector.push_back(normal.y);
+    vector.push_back(normal.z);
+
+    vector.push_back(color.r);
+    vector.push_back(color.g);
+    vector.push_back(color.b);
+
+    vector.push_back(uv.x); // Add U coordinate
+    vector.push_back(uv.y); // Add V coordinate
+
+}
+glm::vec2 calculateUV(int x, int y, int resolution) {
+    // Normalize the UV coordinates to the [0, 1] range
+
+    float u = static_cast<float>(x) / static_cast<float>(resolution - 1);
+    float v = static_cast<float>(y) / static_cast<float>(resolution - 1);
+
+    // Clamp the values to [0, 1] to avoid exceeding the range
+    u = glm::clamp(u, 0.0f, 1.0f);
+    v = glm::clamp(v, 0.0f, 1.0f);
+    //std::cout << "UV for vertex (" << x << ", " << y << "): (" << u << ", " << v << ")" << std::endl;
+    return glm::vec2(u, v);
+}
 // Generates the geometry of the output triangle mesh
 std::vector<float> TerrainGenerator::generateTerrain() {
     std::vector<float> verts;
     verts.reserve(m_resolution * m_resolution * 6);
 
-    for(int x = 0; x < m_resolution; x++) {
-        for(int y = 0; y < m_resolution; y++) {
+    for (int x = 0; x < m_resolution; x++) {
+        for (int y = 0; y < m_resolution; y++) {
             int x1 = x;
             int y1 = y;
 
             int x2 = x + 1;
             int y2 = y + 1;
 
-            glm::vec3 p1 = getPosition(x1,y1);
-            glm::vec3 p2 = getPosition(x2,y1);
-            glm::vec3 p3 = getPosition(x2,y2);
-            glm::vec3 p4 = getPosition(x1,y2);
+            glm::vec3 p1 = getPosition(x1, y1);
+            glm::vec3 p2 = getPosition(x2, y1);
+            glm::vec3 p3 = getPosition(x2, y2);
+            glm::vec3 p4 = getPosition(x1, y2);
 
-            glm::vec3 n1 = getNormal(x1,y1);
-            glm::vec3 n2 = getNormal(x2,y1);
-            glm::vec3 n3 = getNormal(x2,y2);
-            glm::vec3 n4 = getNormal(x1,y2);
+            glm::vec3 n1 = getNormal(x1, y1);
+            glm::vec3 n2 = getNormal(x2, y1);
+            glm::vec3 n3 = getNormal(x2, y2);
+            glm::vec3 n4 = getNormal(x1, y2);
 
-            // tris 1
-            // x1y1z1
-            // x2y1z2
-            // x2y2z3
-            addPointToVector(p1, verts);
-            addPointToVector(n1, verts);
-            addPointToVector(getColor(n1, p1), verts);
+            glm::vec3 c1 = getColor(n1, p1);
+            glm::vec3 c2 = getColor(n2, p2);
+            glm::vec3 c3 = getColor(n3, p3);
+            glm::vec3 c4 = getColor(n4, p4);
 
-            addPointToVector(p2, verts);
-            addPointToVector(n2, verts);
-            addPointToVector(getColor(n2, p2), verts);
+            glm::vec2 uv1 = calculateUV(x1, y1, m_resolution);
+            glm::vec2 uv2 = calculateUV(x2, y1, m_resolution);
+            glm::vec2 uv3 = calculateUV(x2, y2, m_resolution);
+            glm::vec2 uv4 = calculateUV(x1, y2, m_resolution);
 
-            addPointToVector(p3, verts);
-            addPointToVector(n3, verts);
-            addPointToVector(getColor(n3, p3), verts);
+            // Triangle 1
+            addPointToVector(p1, n1, c1, uv1, verts);
+            addPointToVector(p2, n2, c2, uv2, verts);
+            addPointToVector(p3, n3, c3, uv3, verts);
 
-            // tris 2
-            // x1y1z1
-            // x2y2z3
-            // x1y2z4
-            addPointToVector(p1, verts);
-            addPointToVector(n1, verts);
-            addPointToVector(getColor(n1, p1), verts);
-
-            addPointToVector(p3, verts);
-            addPointToVector(n3, verts);
-            addPointToVector(getColor(n3, p3), verts);
-
-            addPointToVector(p4, verts);
-            addPointToVector(n4, verts);
-            addPointToVector(getColor(n4, p4), verts);
+            // Triangle 2
+            addPointToVector(p1, n1, c1, uv1, verts);
+            addPointToVector(p3, n3, c3, uv3, verts);
+            addPointToVector(p4, n4, c4, uv4, verts);
         }
     }
     return verts;
 }
+
 
 // Samples the (infinite) random vector grid at (row, col)
 glm::vec2 TerrainGenerator::sampleRandomVector(int row, int col)

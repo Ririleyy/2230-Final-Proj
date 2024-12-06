@@ -275,7 +275,7 @@ void GLRenderer::bindTerrainTexture(){
 
     glUseProgram(m_terrain_shader);
 
-    QString kitten_filepath = QString(":/resources/images/2.jpg");
+    QString kitten_filepath = QString(":/resources/images/indian-travel-destination-beautiful-attractive.jpg");
     if (!m_image.load(kitten_filepath)) {
         std::cerr << "Failed to load texture: " << kitten_filepath.toStdString() << std::endl;
         return;

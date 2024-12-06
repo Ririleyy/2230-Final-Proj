@@ -53,6 +53,9 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/shaders/terrain.frag
   resources/shaders/particle.frag
   resources/shaders/particle.vert
+  resources/shaders/particle.vert
+  resources/images/indian-travel-destination-beautiful-attractive.jpg
+
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`

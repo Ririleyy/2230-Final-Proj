@@ -14,8 +14,6 @@ GLRenderer::GLRenderer(QWidget *parent)
     m_angleX(6),
     m_angleY(0),
     m_zoom(2),
-    m_isSnow(true),
-    m_weatherEnabled(true),
     m_particle_vao(0),
     m_particle_vbo(0),
     m_particle_shader(0)  // Initialize OpenGL handles to 0
@@ -375,7 +373,8 @@ void GLRenderer::paintDome(){
     glUniform2fv(sunPosLoc, 1, &m_sunPos[0]);
 
     GLint tPosLoc = glGetUniformLocation(m_shader, "T");
-    glUniform1f(tPosLoc, settings.T);
+    float turbidity = (settings.weather == WeatherType::CLEAR) ? 2.0f : 10.0f;
+    glUniform1f(tPosLoc, turbidity);
 
     glDrawArrays(GL_TRIANGLES, 0, m_sphereData.size() / 3);
 
@@ -411,6 +410,11 @@ void GLRenderer::settingsChanged()
 {
     makeCurrent();
     timeToSunPos(settings.time);
+    if (m_particleSystem != nullptr) {
+        m_weatherEnabled = (settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN);
+        m_isSnow = settings.weather == WeatherType::SNOW;
+        m_particleSystem->setParticleType(m_isSnow);
+    }
     m_fov = settings.fov;
     rebuildMatrices();
     update(); // asks for a PaintGL() call to occur
@@ -429,8 +433,8 @@ void GLRenderer::timeToSunPos(const float time)
         azimuth = glm::radians(180.0f);
         zenith = glm::radians(15.0f * (time - 12));
     }
-    zenith = glm::min(zenith, glm::radians(120.0f));
-    // std::cout << "Time: " << time << " Zenith: " << glm::degrees(m_sunPos.x) << " Azimuth: " << glm::degrees(m_sunPos.y) << std::endl;
+    zenith = glm::min(zenith, glm::radians(130.0f));
+    // std::cout << "Time: " << time << " Zenith: " << glm::degrees(zenith) << " Azimuth: " << glm::degrees(azimuth) << std::endl;
     m_sunPos = glm::vec2(azimuth, zenith);
 }
 

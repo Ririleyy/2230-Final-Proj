@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include <QHBoxLayout>
 #include "settings.h"
+#include <iostream>
 
 MainWindow::MainWindow() : QWidget(nullptr), glRenderer(nullptr)
 {
@@ -24,21 +25,16 @@ MainWindow::MainWindow() : QWidget(nullptr), glRenderer(nullptr)
     fov_label->setText("Field of View:");
     QLabel *time_label = new QLabel();
     time_label->setText("Time:");
-    QLabel *turbidity_label = new QLabel();
-    turbidity_label->setText("Turbidity:");
 
     // Create parameter layouts
     QGroupBox *fovLayout = new QGroupBox();
     QHBoxLayout *lfov = new QHBoxLayout();
     QGroupBox *timeLayout = new QGroupBox();
     QHBoxLayout *ltime = new QHBoxLayout();
-    QGroupBox *turbidityLayout = new QGroupBox();
-    QHBoxLayout *lturbidity = new QHBoxLayout();
 
     // Create sliders and spinboxes
     createSliderSpinbox(fovSlider, fovBox, 10, 179, 45);
     createSliderSpinbox(timeSlider, timeBox, 0, 24, 12);
-    createSliderSpinbox(turbiditySlider, turbidityBox, 1, 10, 1);
 
     // Create Time controls
     lfov->addWidget(fovSlider);
@@ -48,18 +44,11 @@ MainWindow::MainWindow() : QWidget(nullptr), glRenderer(nullptr)
     ltime->addWidget(timeSlider);
     ltime->addWidget(timeBox);
     timeLayout->setLayout(ltime);
-
-    lturbidity->addWidget(turbiditySlider);
-    lturbidity->addWidget(turbidityBox);
-    turbidityLayout->setLayout(lturbidity);
     
     vLayout->addWidget(fov_label);
     vLayout->addWidget(fovLayout);
     vLayout->addWidget(time_label);
     vLayout->addWidget(timeLayout);
-    vLayout->addWidget(turbidity_label);
-    vLayout->addWidget(turbidityLayout);
-
 
     // Create and add weather controls
     createWeatherControls();
@@ -67,6 +56,23 @@ MainWindow::MainWindow() : QWidget(nullptr), glRenderer(nullptr)
     // Connect all UI elements
     connectUIElements();
     setupWeatherControls();
+
+    // Initialize settings
+    initSettings();
+}
+
+void MainWindow::initSettings()
+{
+    settings.fov = fovSlider->value();
+    settings.time = timeSlider->value();
+
+    if (noWeatherButton->isChecked()) {
+        settings.weather = WeatherType::CLEAR;
+    } else if (snowButton->isChecked()) {
+        settings.weather = WeatherType::SNOW;
+    } else if (rainButton->isChecked()) {
+        settings.weather = WeatherType::RAIN;
+    } 
 }
 
 void MainWindow::createWeatherControls() {
@@ -110,12 +116,18 @@ void MainWindow::setupWeatherControls() {
 void MainWindow::onWeatherTypeChanged() {
     if (!glRenderer) return;
 
+    std::cout << "No Weather: "<< noWeatherButton->isChecked() << std::endl;
+    std::cout << "Snow: "<< snowButton->isChecked() << std::endl;
+    std::cout << "Rain: "<< rainButton->isChecked() << std::endl;
     if (noWeatherButton->isChecked()) {
-        glRenderer->setWeatherEnabled(false);
+        settings.weather = WeatherType::CLEAR;
+    } else if (snowButton->isChecked()) {
+        settings.weather = WeatherType::SNOW;
     } else {
-        glRenderer->setWeatherEnabled(true);
-        glRenderer->setWeatherType(snowButton->isChecked());
+        settings.weather = WeatherType::RAIN;
     }
+
+    glRenderer->settingsChanged();
 }
 
 void MainWindow::createSliderSpinbox(QSlider *&slider, QSpinBox *&spinbox, int min, int max, int defaultVal) {
@@ -137,7 +149,6 @@ void MainWindow::connectUIElements() {
 
     connectFov();
     connectTime();
-    connectTurbidity();
 }
 
 void MainWindow::connectTime() {
@@ -147,11 +158,6 @@ void MainWindow::connectTime() {
             this, &MainWindow::onValChangeTime);
 }
 
-void MainWindow::connectTurbidity() {
-    connect(turbiditySlider, &QSlider::valueChanged, this, &MainWindow::onValChangeTurbidity);
-    connect(turbidityBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
-            this, &MainWindow::onValChangeTurbidity);
-}
 
 void MainWindow::connectFov() {
     connect(fovSlider, &QSlider::valueChanged,
@@ -178,12 +184,6 @@ void MainWindow::onValChangeFov(int newValue) {
     if (glRenderer) glRenderer->settingsChanged();
 }
 
-void MainWindow::onValChangeTurbidity(int newValue) {
-    turbiditySlider->setValue(newValue);
-    turbidityBox->setValue(newValue);
-    settings.T = turbiditySlider->value();
-    glRenderer->settingsChanged();
-}
 MainWindow::~MainWindow() {
     delete glRenderer;
 }

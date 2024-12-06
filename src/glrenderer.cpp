@@ -1,19 +1,24 @@
 #include "glrenderer.h"
-
 #include <QCoreApplication>
 #include "src/shaderloader.h"
-
 #include <cmath>
 #include "glm/gtc/constants.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
 #include "settings.h"
+#include "utils/particle.h"
+
 
 GLRenderer::GLRenderer(QWidget *parent)
     : QOpenGLWidget(parent),
-      m_angleX(6),
-      m_angleY(0),
-      m_zoom(2)
+    m_angleX(6),
+    m_angleY(0),
+    m_zoom(2),
+    m_isSnow(true),
+    m_weatherEnabled(true),
+    m_particle_vao(0),
+    m_particle_vbo(0),
+    m_particle_shader(0)  // Initialize OpenGL handles to 0
 {
     setFocusPolicy(Qt::StrongFocus);
     m_eye = glm::vec3(1, 0, 0);
@@ -32,9 +37,22 @@ GLRenderer::~GLRenderer()
 {
     makeCurrent();
     killTimer(m_timer);
+
+    // Delete terrain resources
+    glDeleteBuffers(1, &m_terrainVbo);
+    glDeleteVertexArrays(1, &m_terrainVao);
+    if (m_terrain_shader) glDeleteProgram(m_terrain_shader);
+
+    // Delete dome resources
     glDeleteBuffers(1, &m_sphere_vbo);
     glDeleteVertexArrays(1, &m_sphere_vao);
-    glDeleteProgram(m_shader);
+    if (m_shader) glDeleteProgram(m_shader);
+
+    // Delete particle resources
+    if (m_particle_vbo) glDeleteBuffers(1, &m_particle_vbo);
+    if (m_particle_vao) glDeleteVertexArrays(1, &m_particle_vao);
+    if (m_particle_shader) glDeleteProgram(m_particle_shader);
+
     doneCurrent();
 }
 
@@ -133,46 +151,214 @@ void GLRenderer::initializeGL()
     m_timer = startTimer(1000 / 60);
     m_elapsedTimer.start();
 
-    // Initialize GL extension wrangler
     glewExperimental = GL_TRUE;
     GLenum err = glewInit();
     if (err != GLEW_OK)
         fprintf(stderr, "Error while initializing GLEW: %s\n", glewGetErrorString(err));
     fprintf(stdout, "Successfully initialized GLEW %s\n", glewGetString(GLEW_VERSION));
 
-    // Set clear color to black
     glClearColor(0, 0, 0, 1);
-
-    // Enable depth testing
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
-    // Generate and bind VBO
-    glGenBuffers(1, &m_sphere_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
-    // Generate sphere data
-    m_sphereData = generateDomeData(50, 50);
-    m_model = glm::scale(m_model, glm::vec3(50, 50, 50));
-    // Send data to VBO
-    glBufferData(GL_ARRAY_BUFFER, m_sphereData.size() * sizeof(GLfloat), m_sphereData.data(), GL_STATIC_DRAW);
-    // Generate, and bind vao
-    glGenVertexArrays(1, &m_sphere_vao);
-    glBindVertexArray(m_sphere_vao);
+    try {
+        // Initialize shaders
+        m_shader = ShaderLoader::createShaderProgram(":/resources/shaders/default.vert", ":/resources/shaders/default.frag");
+        m_terrain_shader = ShaderLoader::createShaderProgram(":/resources/shaders/terrain.vert", ":/resources/shaders/terrain.frag");
+        m_particle_shader = ShaderLoader::createShaderProgram(":/resources/shaders/particle.vert", ":/resources/shaders/particle.frag");
 
-    // Enable and define attribute 0 to store vertex positions
+        // Initialize dome
+        glGenBuffers(1, &m_sphere_vbo);
+        glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
+        m_sphereData = generateDomeData(50, 50);
+        m_model = glm::scale(m_model, glm::vec3(50, 50, 50));
+        glBufferData(GL_ARRAY_BUFFER, m_sphereData.size() * sizeof(GLfloat), m_sphereData.data(), GL_STATIC_DRAW);
+        glGenVertexArrays(1, &m_sphere_vao);
+        glBindVertexArray(m_sphere_vao);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+
+        // Initialize terrain
+        bindTerrainVaoVbo();
+
+        // Initialize particle system
+        initializeParticleSystem();
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    } catch (const std::exception& e) {
+        fprintf(stderr, "Error during initialization: %s\n", e.what());
+    }
+}
+
+
+void GLRenderer::initializeParticleSystem() {
+    m_particleSystem = std::make_unique<ParticleSystem>(10000);
+    m_particleSystem->setParticleType(m_isSnow);
+    m_particleSystem->setEmissionArea(100.0f, 100.0f);
+
+    glGenVertexArrays(1, &m_particle_vao);
+    glGenBuffers(1, &m_particle_vbo);
+
+    glBindVertexArray(m_particle_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_particle_vbo);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Particle) * 10000, nullptr, GL_DYNAMIC_DRAW);
+
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)0);
 
-    // Clean-up bindings
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, size));
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, life));
+}
+
+void GLRenderer::setWeatherType(bool isSnow) {
+    if (!m_particleSystem) return;  // Guard against null pointer
+
+    makeCurrent();  // Ensure OpenGL context is current
+    m_isSnow = isSnow;
+    m_particleSystem->setParticleType(isSnow);
+    update();
+    doneCurrent();
+}
+
+void GLRenderer::bindTerrainVaoVbo(){
+
+    glUseProgram(m_terrain_shader);
+
+    // Terrain VAO and VBO setup
+    glGenVertexArrays(1, &m_terrainVao);
+    glBindVertexArray(m_terrainVao);
+
+    // Generate terrain data
+    m_terrainData = m_terrain.generateTerrain();
+
+    // Generate and bind VBO
+    glGenBuffers(1, &m_terrainVbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_terrainVbo);
+    glBufferData(GL_ARRAY_BUFFER, m_terrainData.size() * sizeof(GLfloat), m_terrainData.data(), GL_STATIC_DRAW);
+
+    // Configure vertex attributes
+    glEnableVertexAttribArray(0); // Vertex position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+
+    glEnableVertexAttribArray(1); // Vertex normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+
+    glEnableVertexAttribArray(2); // Vertex color
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(6 * sizeof(GLfloat)));
+
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(0);
+
 }
 
 void GLRenderer::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBindVertexArray(m_sphere_vao);
+
+    // Paint terrain first
+    paintTerrain();
+
+    // Paint dome
+    paintDome();
+
+    // Paint particles last for proper transparency
+    if (m_weatherEnabled && m_particleSystem) {
+        renderParticles();
+    }
+}
+
+void GLRenderer::renderParticles() {
+    glUseProgram(m_particle_shader);
+    glBindVertexArray(m_particle_vao);
+
+    GLint projLoc = glGetUniformLocation(m_particle_shader, "projection");
+    GLint viewLoc = glGetUniformLocation(m_particle_shader, "view");
+    GLint isSnowLoc = glGetUniformLocation(m_particle_shader, "isSnow");
+
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, &m_proj[0][0]);
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &m_view[0][0]);
+    glUniform1i(isSnowLoc, m_isSnow);
+
+    glEnable(GL_POINT_SPRITE);
+    glEnable(GL_PROGRAM_POINT_SIZE);
+
+    const auto& particles = m_particleSystem->getParticles();
+    glDrawArrays(GL_POINTS, 0, particles.size());
+
+    glDisable(GL_POINT_SPRITE);
+    glDisable(GL_PROGRAM_POINT_SIZE);
+}
+
+void GLRenderer::timerEvent(QTimerEvent *event)
+{
+    int elapsedms = m_elapsedTimer.elapsed();
+    float deltaTime = elapsedms * 0.001f;
+    m_elapsedTimer.restart();
+
+    // Update particles
+    if (m_weatherEnabled && m_particleSystem) {
+        m_particleSystem->update(deltaTime);
+
+        glBindBuffer(GL_ARRAY_BUFFER, m_particle_vbo);
+        const auto& particles = m_particleSystem->getParticles();
+        glBufferSubData(GL_ARRAY_BUFFER, 0, particles.size() * sizeof(Particle), particles.data());
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    // Your existing camera movement code...
+    glm::vec3 lookDir = glm::normalize(m_look - m_eye);
+    glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
+    glm::vec3 moveFront = m_translSpeed * deltaTime * lookDir;
+    glm::vec3 moveRight = m_translSpeed * deltaTime * rightDir;
+    glm::vec3 moveUp = m_translSpeed * deltaTime * m_up;
+
+    for (auto &key : m_keyMap) {
+        if (key.second) {
+            switch (key.first) {
+            case Qt::Key_W:
+                m_eye += moveFront;
+                m_look += moveFront;
+                break;
+            case Qt::Key_S:
+                m_eye -= moveFront;
+                m_look -= moveFront;
+                break;
+            case Qt::Key_A:
+                m_eye -= moveRight;
+                m_look -= moveRight;
+                break;
+            case Qt::Key_D:
+                m_eye += moveRight;
+                m_look += moveRight;
+                break;
+            case Qt::Key_Control:
+                m_eye -= moveUp;
+                m_look -= moveUp;
+                break;
+            case Qt::Key_Space:
+                m_eye += moveUp;
+                m_look += moveUp;
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    rebuildMatrices();
+}
+
+void GLRenderer::paintDome(){
+
     glUseProgram(m_shader);
+    glBindVertexArray(m_sphere_vao);
 
     GLint modelLoc = glGetUniformLocation(m_shader, "model");
     GLint viewLoc = glGetUniformLocation(m_shader, "view");
@@ -195,6 +381,30 @@ void GLRenderer::paintGL()
 
     glBindVertexArray(0);
     glUseProgram(0);
+
+}
+
+void GLRenderer::paintTerrain(){
+    glUseProgram(m_terrain_shader);
+
+    glBindVertexArray(m_terrainVao);
+
+    // Set up the model, view, and projection matrices
+    glm::mat4 terrainModel = glm::mat4(1.0f);
+    terrainModel = glm::translate(terrainModel, glm::vec3(0.0f, -0.5f, 0.0f)); // Adjust terrain position
+
+    terrainModel = glm::rotate(terrainModel, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
+    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &terrainModel[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
+
+    // Draw terrain
+    glDrawArrays(GL_TRIANGLES, 0, m_terrainData.size() / 9);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+
 }
 
 void GLRenderer::settingsChanged()
@@ -324,61 +534,6 @@ void GLRenderer::keyPressEvent(QKeyEvent *event)
 void GLRenderer::keyReleaseEvent(QKeyEvent *event)
 {
     m_keyMap[Qt::Key(event->key())] = false;
-}
-
-void GLRenderer::timerEvent(QTimerEvent *event)
-{
-    int elapsedms = m_elapsedTimer.elapsed();
-    float deltaTime = elapsedms * 0.001f;
-    m_elapsedTimer.restart();
-
-    // Calculate normalized look direction and right vector
-    glm::vec3 lookDir = glm::normalize(m_look - m_eye);
-    glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
-
-    // Calculate movement vectors
-    glm::vec3 moveFront = m_translSpeed * deltaTime * lookDir;
-    glm::vec3 moveRight = m_translSpeed * deltaTime * rightDir;
-    glm::vec3 moveUp = m_translSpeed * deltaTime * m_up;
-
-    // Process key movements
-    for (auto &key : m_keyMap)
-    {
-        if (key.second)
-        {
-            switch (key.first)
-            {
-            case Qt::Key_W:
-                m_eye += moveFront;
-                m_look += moveFront;
-                break;
-            case Qt::Key_S:
-                m_eye -= moveFront;
-                m_look -= moveFront;
-                break;
-            case Qt::Key_A:
-                m_eye -= moveRight;
-                m_look -= moveRight;
-                break;
-            case Qt::Key_D:
-                m_eye += moveRight;
-                m_look += moveRight;
-                break;
-            case Qt::Key_Control:
-                m_eye -= moveUp;
-                m_look -= moveUp;
-                break;
-            case Qt::Key_Space:
-                m_eye += moveUp;
-                m_look += moveUp;
-                break;
-            default:
-                break;
-            }
-        }
-    }
-
-    rebuildMatrices();
 }
 
 void GLRenderer::rebuildMatrices()

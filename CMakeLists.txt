@@ -35,6 +35,12 @@ add_executable(${PROJECT_NAME}
     src/shaderloader.h
     src/utils/camera.h
     src/settings.h
+    src/utils/terrain.h src/utils/terrain.cpp
+    resources/shaders/terrain.vert
+    resources/shaders/terrain.frag
+    src/utils/particle.h src/utils/particle.cpp
+
+
 )
 # Specifies other files
 qt_add_resources(${PROJECT_NAME} "Resources"
@@ -43,6 +49,10 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   FILES
   resources/shaders/default.vert
   resources/shaders/default.frag
+  resources/shaders/terrain.vert
+  resources/shaders/terrain.frag
+  resources/shaders/particle.frag
+  resources/shaders/particle.vert
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`

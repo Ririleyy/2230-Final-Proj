@@ -1,30 +1,25 @@
 #include "mainwindow.h"
-
 #include <QHBoxLayout>
 #include "settings.h"
 
-MainWindow::MainWindow()
+MainWindow::MainWindow() : QWidget(nullptr), glRenderer(nullptr)
 {
-    glRenderer = new GLRenderer;
-    
-    // Create main horizontal layout
-    QHBoxLayout *hLayout = new QHBoxLayout;
-    QVBoxLayout *vLayout = new QVBoxLayout(); // vertical alignment for controls
+    // Create main renderer
+    glRenderer = new GLRenderer(this);
+
+    // Create main layouts
+    QHBoxLayout *hLayout = new QHBoxLayout(this);
+    vLayout = new QVBoxLayout();
     vLayout->setAlignment(Qt::AlignTop);
-    
-    // Add layouts to main layout
+
+    // Add layouts
     hLayout->addLayout(vLayout);
     hLayout->addWidget(glRenderer, 1);
-    this->setLayout(hLayout);  // Only set the layout once
 
-    // Create labels
+    // Create font for labels
     QFont font;
     font.setPointSize(12);
     font.setBold(true);
-    // QLabel *param1_label = new QLabel();
-    // param1_label->setText("Elevation:");
-    // QLabel *param2_label = new QLabel();
-    // param2_label->setText("Azimuth:");
     QLabel *fov_label = new QLabel();
     fov_label->setText("Field of View:");
     QLabel *time_label = new QLabel();
@@ -33,10 +28,6 @@ MainWindow::MainWindow()
     turbidity_label->setText("Turbidity:");
 
     // Create parameter layouts
-    // QGroupBox *p1Layout = new QGroupBox();
-    // QHBoxLayout *l1 = new QHBoxLayout();
-    // QGroupBox *p2Layout = new QGroupBox();
-    // QHBoxLayout *l2 = new QHBoxLayout();
     QGroupBox *fovLayout = new QGroupBox();
     QHBoxLayout *lfov = new QHBoxLayout();
     QGroupBox *timeLayout = new QGroupBox();
@@ -45,38 +36,32 @@ MainWindow::MainWindow()
     QHBoxLayout *lturbidity = new QHBoxLayout();
 
     // Create sliders and spinboxes
-    // createSliderSpinbox(p1Slider, p1Box, 0, 180, 0);
-    // createSliderSpinbox(p2Slider, p2Box, 0, 360, 0);
     createSliderSpinbox(fovSlider, fovBox, 10, 179, 45);
     createSliderSpinbox(timeSlider, timeBox, 0, 24, 12);
     createSliderSpinbox(turbiditySlider, turbidityBox, 1, 10, 1);
 
-    // Add widgets to layouts
-    // l1->addWidget(p1Slider);
-    // l1->addWidget(p1Box);
-    // p1Layout->setLayout(l1);
 
-    // l2->addWidget(p2Slider);
-    // l2->addWidget(p2Box);
-    // p2Layout->setLayout(l2);
-
+    // Create FOV controls
+    QLabel *fov_label = new QLabel("Field of View:", this);
+    fov_label->setFont(font);
+    QGroupBox *fovLayout = new QGroupBox(this);
+    QHBoxLayout *lfov = new QHBoxLayout(fovLayout);
+    createSliderSpinbox(fovSlider, fovBox, 10, 179, 45);
     lfov->addWidget(fovSlider);
     lfov->addWidget(fovBox);
-    fovLayout->setLayout(lfov);
 
+    // Create Time controls
+    QLabel *time_label = new QLabel("Time:", this);
+    time_label->setFont(font);
+    QGroupBox *timeLayout = new QGroupBox(this);
+    QHBoxLayout *ltime = new QHBoxLayout(timeLayout);
+    createSliderSpinbox(timeSlider, timeBox, 0, 24, 12);
     ltime->addWidget(timeSlider);
     ltime->addWidget(timeBox);
-    timeLayout->setLayout(ltime);
 
     lturbidity->addWidget(turbiditySlider);
     lturbidity->addWidget(turbidityBox);
     turbidityLayout->setLayout(lturbidity);
-
-    // Add everything to vertical layout
-    // vLayout->addWidget(param1_label);
-    // vLayout->addWidget(p1Layout);
-    // vLayout->addWidget(param2_label);
-    // vLayout->addWidget(p2Layout);
     vLayout->addWidget(fov_label);
     vLayout->addWidget(fovLayout);
     vLayout->addWidget(time_label);
@@ -85,20 +70,71 @@ MainWindow::MainWindow()
     vLayout->addWidget(turbidityLayout);
 
 
+    // Create and add weather controls
+    createWeatherControls();
 
-
+    // Connect all UI elements
     connectUIElements();
+    setupWeatherControls();
 }
 
-void MainWindow::createSliderSpinbox(QSlider *&slider, QSpinBox *&spinbox, int min, int max, int defaultVal)
-{
-    slider = new QSlider(Qt::Orientation::Horizontal);
+void MainWindow::createWeatherControls() {
+    QLabel *weather_label = new QLabel("Weather Type:", this);
+    QFont font = weather_label->font();
+    font.setPointSize(12);
+    font.setBold(true);
+    weather_label->setFont(font);
+
+    QGroupBox *weatherBox = new QGroupBox(this);
+    QVBoxLayout *weatherLayout = new QVBoxLayout(weatherBox);
+
+    noWeatherButton = new QRadioButton("No Weather", this);
+    snowButton = new QRadioButton("Snow", this);
+    rainButton = new QRadioButton("Rain", this);
+
+    snowButton->setChecked(true);
+
+    weatherLayout->addWidget(noWeatherButton);
+    weatherLayout->addWidget(snowButton);
+    weatherLayout->addWidget(rainButton);
+
+    vLayout->addWidget(weather_label);
+    vLayout->addWidget(weatherBox);
+}
+
+void MainWindow::setupWeatherControls() {
+    if (!noWeatherButton || !snowButton || !rainButton || !glRenderer) return;
+
+    connect(noWeatherButton, &QRadioButton::toggled,
+            this, &MainWindow::onWeatherTypeChanged,
+            Qt::ConnectionType::QueuedConnection);
+    connect(rainButton, &QRadioButton::toggled,
+            this, &MainWindow::onWeatherTypeChanged,
+            Qt::ConnectionType::QueuedConnection);
+    connect(snowButton, &QRadioButton::toggled,
+            this, &MainWindow::onWeatherTypeChanged,
+            Qt::ConnectionType::QueuedConnection);
+}
+
+void MainWindow::onWeatherTypeChanged() {
+    if (!glRenderer) return;
+
+    if (noWeatherButton->isChecked()) {
+        glRenderer->setWeatherEnabled(false);
+    } else {
+        glRenderer->setWeatherEnabled(true);
+        glRenderer->setWeatherType(snowButton->isChecked());
+    }
+}
+
+void MainWindow::createSliderSpinbox(QSlider *&slider, QSpinBox *&spinbox, int min, int max, int defaultVal) {
+    slider = new QSlider(Qt::Orientation::Horizontal, this);
     slider->setTickInterval(1);
     slider->setMinimum(min);
     slider->setMaximum(max);
     slider->setValue(defaultVal);
 
-    spinbox = new QSpinBox();
+    spinbox = new QSpinBox(this);
     spinbox->setMinimum(min);
     spinbox->setMaximum(max);
     spinbox->setSingleStep(1);
@@ -106,15 +142,16 @@ void MainWindow::createSliderSpinbox(QSlider *&slider, QSpinBox *&spinbox, int m
 }
 
 void MainWindow::connectUIElements() {
-    // connectParam1();
-    // connectParam2();
+    if (!fovSlider || !fovBox || !timeSlider || !timeBox) return;
+
     connectFov();
     connectTime();
     connectTurbidity();
 }
 
 void MainWindow::connectTime() {
-    connect(timeSlider, &QSlider::valueChanged, this, &MainWindow::onValChangeTime);
+    connect(timeSlider, &QSlider::valueChanged,
+            this, &MainWindow::onValChangeTime);
     connect(timeBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this, &MainWindow::onValChangeTime);
 }
@@ -125,36 +162,29 @@ void MainWindow::connectTurbidity() {
             this, &MainWindow::onValChangeTurbidity);
 }
 
-// void MainWindow::connectParam1() {
-//     connect(p1Slider, &QSlider::valueChanged, this, &MainWindow::onValChangeP1);
-//     connect(p1Box, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
-//             this, &MainWindow::onValChangeP1);
-// }
-
-// void MainWindow::connectParam2() {
-//     connect(p2Slider, &QSlider::valueChanged, this, &MainWindow::onValChangeP2);
-//     connect(p2Box, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
-//             this, &MainWindow::onValChangeP2);
-// }
-
 void MainWindow::connectFov() {
-    connect(fovSlider, &QSlider::valueChanged, this, &MainWindow::onValChangeFov);
+    connect(fovSlider, &QSlider::valueChanged,
+            this, &MainWindow::onValChangeFov);
     connect(fovBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
             this, &MainWindow::onValChangeFov);
 }
 
 void MainWindow::onValChangeTime(int newValue) {
+    if (!timeSlider || !timeBox) return;
+
     timeSlider->setValue(newValue);
     timeBox->setValue(newValue);
     settings.time = timeSlider->value();
-    glRenderer->settingsChanged();
+    if (glRenderer) glRenderer->settingsChanged();
 }
 
 void MainWindow::onValChangeFov(int newValue) {
+    if (!fovSlider || !fovBox) return;
+
     fovSlider->setValue(newValue);
     fovBox->setValue(newValue);
     settings.fov = fovSlider->value();
-    glRenderer->settingsChanged();
+    if (glRenderer) glRenderer->settingsChanged();
 }
 
 void MainWindow::onValChangeTurbidity(int newValue) {
@@ -163,22 +193,6 @@ void MainWindow::onValChangeTurbidity(int newValue) {
     settings.T = turbiditySlider->value();
     glRenderer->settingsChanged();
 }
-
-// void MainWindow::onValChangeP1(int newValue) {
-//     p1Slider->setValue(newValue);
-//     p1Box->setValue(newValue);
-//     settings.azimuth = p1Slider->value();
-//     glRenderer->settingsChanged();
-// }
-
-// void MainWindow::onValChangeP2(int newValue) {
-//     p2Slider->setValue(newValue);
-//     p2Box->setValue(newValue);
-//     settings.elevation = p2Slider->value();
-//     glRenderer->settingsChanged();
-// }
-
 MainWindow::~MainWindow() {
     delete glRenderer;
 }
-

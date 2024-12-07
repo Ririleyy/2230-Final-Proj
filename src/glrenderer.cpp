@@ -180,7 +180,6 @@ void GLRenderer::initializeGL()
         glGenBuffers(1, &m_sphere_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
         m_sphereData = generateDomeData(50, 50);
-        m_model = glm::scale(m_model, glm::vec3(50, 50, 50));
         glBufferData(GL_ARRAY_BUFFER, m_sphereData.size() * sizeof(GLfloat), m_sphereData.data(), GL_STATIC_DRAW);
         glGenVertexArrays(1, &m_sphere_vao);
         glBindVertexArray(m_sphere_vao);
@@ -557,10 +556,14 @@ void GLRenderer::paintDome(){
     glUseProgram(m_skydome_shader);
     glBindVertexArray(m_sphere_vao);
 
+    glm::mat4 domeModel = glm::mat4(1.0f);
+    domeModel = glm::translate(domeModel, m_eye); 
+    domeModel = glm::scale(domeModel, glm::vec3(50, 50, 50));
+
     GLint modelLoc = glGetUniformLocation(m_skydome_shader, "model");
     GLint viewLoc = glGetUniformLocation(m_skydome_shader, "view");
     GLint projLoc = glGetUniformLocation(m_skydome_shader, "projection");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &m_model[0][0]);
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &domeModel[0][0]);
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, &m_proj[0][0]);
 

@@ -30,11 +30,10 @@ void ParticleSystem::resetParticle(Particle& particle, bool randomizeHeight) {
     float y = randomizeHeight ?
                   randomFloat(0.0f, 100.0f) :
                   100.0f;
-
     particle.position = QVector3D(x, y, z);
 
     if (isSnow) {
-        // Slower, more gentle snow movement
+        // Snow parameters remain unchanged
         particle.velocity = QVector3D(
             randomFloat(-0.5f, 0.5f),
             -particleSpeed * 0.15f,
@@ -43,16 +42,15 @@ void ParticleSystem::resetParticle(Particle& particle, bool randomizeHeight) {
         particle.size = 0.3f;
         particle.life = 1.0f;
     } else {
-        // Fast, straight rain
+        // Modified rain parameters for lighter appearance
         particle.velocity = QVector3D(
-            randomFloat(-0.2f, 0.2f),
-            -particleSpeed * 3.0f,
-            randomFloat(-0.2f, 0.2f)
+            randomFloat(-0.1f, 0.1f),          // Reduced horizontal spread
+            -particleSpeed * 2.0f,             // Slightly reduced speed
+            randomFloat(-0.1f, 0.1f)           // Reduced horizontal spread
             );
-        particle.size = 0.15f;  // Increased rain size
-        particle.life = 1.0f;
+        particle.size = 0.08f;                 // Smaller raindrops
+        particle.life = randomFloat(0.7f, 1.0f); // Varied life for more natural look
     }
-
     particle.active = true;
 }
 

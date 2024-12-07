@@ -16,18 +16,28 @@ GLRenderer::GLRenderer(QWidget *parent)
     m_zoom(2),
     m_particle_vao(0),
     m_particle_vbo(0),
-    m_particle_shader(0)  // Initialize OpenGL handles to 0
+    m_particle_shader(0),
+    // Initialize camera trajectory parameters
+    m_autoRotate(false),
+    m_trajectoryRadius(30.0f),
+    m_trajectoryHeight(15.0f),
+    m_rotationAngle(0.0f),
+    // Initialize camera parameters
+    m_eye(glm::vec3(m_trajectoryRadius, m_trajectoryHeight, 0)),
+    m_look(glm::vec3(0, 0, 0)),
+    m_up(glm::vec3(0, 1, 0))
 {
     setFocusPolicy(Qt::StrongFocus);
-    m_eye = glm::vec3(1, 0, 0);
-    m_look = glm::vec3(-3, 0, 0);
-    m_up = glm::vec3(0, 1, 0);
+
+    // Initialize key mappings
     m_keyMap[Qt::Key_W] = false;
     m_keyMap[Qt::Key_A] = false;
     m_keyMap[Qt::Key_S] = false;
     m_keyMap[Qt::Key_D] = false;
     m_keyMap[Qt::Key_Control] = false;
     m_keyMap[Qt::Key_Space] = false;
+    m_keyMap[Qt::Key_R] = false;  // Add R key for auto-rotation
+
     rebuildMatrices();
 }
 
@@ -179,6 +189,7 @@ void GLRenderer::initializeGL()
 
         // Initialize terrain
         bindTerrainVaoVbo();
+        bindTerrainTexture();
 
         // Initialize particle system
         initializeParticleSystem();
@@ -234,6 +245,16 @@ void GLRenderer::bindTerrainVaoVbo(){
 
     // Generate terrain data
     m_terrainData = m_terrain.generateTerrain();
+    // std::cout << "m_terrainData size: " << m_terrainData.size() << std::endl;
+    // for (size_t i = 0; i < m_terrainData.size(); ++i) {
+    //     std::cout << std::fixed << std::setprecision(6) << m_terrainData[i] << " ";
+
+    //     // Add formatting for readability (e.g., print new line after every 11 floats)
+    //     if ((i + 1) % 11 == 0) {
+    //         std::cout << std::endl; // New line after one vertex's data (if 11 floats per vertex)
+    //     }
+    // }
+    // std::cout << std::endl;
 
     // Generate and bind VBO
     glGenBuffers(1, &m_terrainVbo);
@@ -242,16 +263,56 @@ void GLRenderer::bindTerrainVaoVbo(){
 
     // Configure vertex attributes
     glEnableVertexAttribArray(0); // Vertex position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(0));
 
     glEnableVertexAttribArray(1); // Vertex normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
 
     glEnableVertexAttribArray(2); // Vertex color
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), reinterpret_cast<void *>(6 * sizeof(GLfloat)));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(6 * sizeof(GLfloat)));
+
+    glEnableVertexAttribArray(3); // uv
+
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat),
+                          reinterpret_cast<void *>(9 * sizeof(GLfloat)));
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glUseProgram(0);
+
+}
+void GLRenderer::bindTerrainTexture(){
+
+    glUseProgram(m_terrain_shader);
+
+    QString kitten_filepath = QString(":/resources/images/2.jpg");
+    if (!m_image.load(kitten_filepath)) {
+        std::cerr << "Failed to load texture: " << kitten_filepath.toStdString() << std::endl;
+        return;
+    }
+
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888); // Ensure format compatibility
+
+    // Task 2: Generate texture
+    glGenTextures(1, &m_textureID);
+    // Task 9: Set the active texture slot to texture slot 0
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindTexture(GL_TEXTURE_2D, m_textureID);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+
+    glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture
+
     glUseProgram(0);
 
 }
@@ -294,64 +355,202 @@ void GLRenderer::renderParticles() {
     glDisable(GL_PROGRAM_POINT_SIZE);
 }
 
-void GLRenderer::timerEvent(QTimerEvent *event)
-{
-    int elapsedms = m_elapsedTimer.elapsed();
-    float deltaTime = elapsedms * 0.001f;
+void GLRenderer::mouseMoveEvent(QMouseEvent *event) {
+    if (m_mouseDown == MouseStaus::LEFT) {
+        int posX = event->position().x();
+        int posY = event->position().y();
+        int deltaX = posX - m_prev_mouse_pos.x;
+        int deltaY = posY - m_prev_mouse_pos.y;
+        m_prev_mouse_pos = glm::vec2(posX, posY);
+
+        // First rotate around Y axis (yaw)
+        glm::vec3 dir = m_look - m_eye;
+        glm::mat3 rotY = Camera::getRotationMatrix(glm::vec3(0, 1, 0), -deltaX * m_rotSpeed);
+        dir = rotY * dir;
+
+        // Then rotate around local right axis (pitch)
+        glm::vec3 right = glm::normalize(glm::cross(dir, m_up));
+        glm::mat3 rotX = Camera::getRotationMatrix(right, -deltaY * m_rotSpeed);
+        dir = rotX * dir;
+
+        // Update look position and up vector
+        m_look = m_eye + dir;
+        m_up = glm::normalize(glm::cross(right, dir));
+
+        rebuildMatrices();
+    }
+    else if (m_mouseDown == MouseStaus::RIGHT) {
+        int posX = event->position().x();
+        int posY = event->position().y();
+        int deltaX = posX - m_prev_mouse_pos.x;
+        int deltaY = posY - m_prev_mouse_pos.y;
+        m_prev_mouse_pos = glm::vec2(posX, posY);
+
+        // Get the current view direction and distance
+        glm::vec3 dir = m_look - m_eye;
+        float distance = glm::length(dir);
+        dir = glm::normalize(dir);
+
+        // Rotate around Y axis (yaw)
+        glm::mat3 rotY = Camera::getRotationMatrix(glm::vec3(0, 1, 0), -deltaX * m_rotSpeed);
+        dir = rotY * dir;
+
+        // Rotate around local right axis (pitch)
+        glm::vec3 right = glm::normalize(glm::cross(dir, m_up));
+        glm::mat3 rotX = Camera::getRotationMatrix(right, deltaY * m_rotSpeed);
+        dir = rotX * dir;
+
+        // Update camera position, maintaining the same distance from look point
+        m_eye = m_look - dir * distance;
+
+        // Update up vector
+        m_up = glm::normalize(glm::cross(right, dir));
+
+        // Apply constraints
+        constrainCamera();
+
+        rebuildMatrices();
+    }
+}
+
+// Update constrainCamera to better handle vertical limits
+void GLRenderer::constrainCamera() {
+    // Constrain height
+    if (m_eye.y > m_maxHeight) {
+        float adjustment = m_eye.y - m_maxHeight;
+        m_eye.y = m_maxHeight;
+
+        // Adjust look point while maintaining direction
+        glm::vec3 dir = glm::normalize(m_look - m_eye);
+        m_look = m_eye + dir * glm::length(m_look - m_eye);
+    } else if (m_eye.y < m_minHeight) {
+        float adjustment = m_minHeight - m_eye.y;
+        m_eye.y = m_minHeight;
+
+        // Adjust look point while maintaining direction
+        glm::vec3 dir = glm::normalize(m_look - m_eye);
+        m_look = m_eye + dir * glm::length(m_look - m_eye);
+    }
+
+    // Constrain radius
+    glm::vec2 horizontalPos(m_eye.x, m_eye.z);
+    float maxRadius = 45.0f;  // Slightly less than dome radius
+    float currentRadius = glm::length(horizontalPos);
+
+    if (currentRadius > maxRadius) {
+        // Scale back to maximum radius
+        float scale = maxRadius / currentRadius;
+        m_eye.x *= scale;
+        m_eye.z *= scale;
+
+        // Adjust look point while maintaining direction
+        glm::vec3 dir = glm::normalize(m_look - m_eye);
+        m_look = m_eye + dir * glm::length(m_look - m_eye);
+    }
+}
+
+void GLRenderer::updateCameraPosition() {
+    if (!m_autoRotate) return;
+
+    float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
     m_elapsedTimer.restart();
 
-    // Update particles
+    // Update rotation angle
+    m_rotationAngle += m_rotationSpeed * deltaTime;
+
+    // Calculate new camera position on circular path
+    m_eye.x = m_trajectoryRadius * cos(m_rotationAngle);
+    m_eye.z = m_trajectoryRadius * sin(m_rotationAngle);
+    m_eye.y = m_trajectoryHeight;
+
+    // Always look at center of terrain
+    m_look = glm::vec3(0.0f, 0.0f, 0.0f);
+    m_up = glm::vec3(0.0f, 1.0f, 0.0f);
+}
+
+
+void GLRenderer::timerEvent(QTimerEvent *event) {
+    float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
+
+    // Handle particle system updates
     if (m_weatherEnabled && m_particleSystem) {
         m_particleSystem->update(deltaTime);
-
         glBindBuffer(GL_ARRAY_BUFFER, m_particle_vbo);
         const auto& particles = m_particleSystem->getParticles();
         glBufferSubData(GL_ARRAY_BUFFER, 0, particles.size() * sizeof(Particle), particles.data());
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    // Your existing camera movement code...
-    glm::vec3 lookDir = glm::normalize(m_look - m_eye);
-    glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
-    glm::vec3 moveFront = m_translSpeed * deltaTime * lookDir;
-    glm::vec3 moveRight = m_translSpeed * deltaTime * rightDir;
-    glm::vec3 moveUp = m_translSpeed * deltaTime * m_up;
+    if (m_autoRotate) {
+        updateCameraPosition();
+    } else {
+        // Calculate movement vectors
+        glm::vec3 lookDir = glm::normalize(m_look - m_eye);
+        glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
+        glm::vec3 moveFront = m_translSpeed * deltaTime * lookDir;
+        glm::vec3 moveRight = m_translSpeed * deltaTime * rightDir;
+        glm::vec3 moveUp = m_translSpeed * deltaTime * m_up;
 
-    for (auto &key : m_keyMap) {
-        if (key.second) {
-            switch (key.first) {
-            case Qt::Key_W:
-                m_eye += moveFront;
-                m_look += moveFront;
-                break;
-            case Qt::Key_S:
-                m_eye -= moveFront;
-                m_look -= moveFront;
-                break;
-            case Qt::Key_A:
-                m_eye -= moveRight;
-                m_look -= moveRight;
-                break;
-            case Qt::Key_D:
-                m_eye += moveRight;
-                m_look += moveRight;
-                break;
-            case Qt::Key_Control:
-                m_eye -= moveUp;
-                m_look -= moveUp;
-                break;
-            case Qt::Key_Space:
-                m_eye += moveUp;
-                m_look += moveUp;
-                break;
-            default:
-                break;
+        // Store original positions in case we need to revert
+        glm::vec3 originalEye = m_eye;
+        glm::vec3 originalLook = m_look;
+
+        // Apply movements
+        for (auto &key : m_keyMap) {
+            if (key.second) {
+                glm::vec3 newEye = m_eye;
+                glm::vec3 newLook = m_look;
+
+                switch (key.first) {
+                case Qt::Key_W:
+                    newEye += moveFront;
+                    newLook += moveFront;
+                    break;
+                case Qt::Key_S:
+                    newEye -= moveFront;
+                    newLook -= moveFront;
+                    break;
+                case Qt::Key_A:
+                    newEye -= moveRight;
+                    newLook -= moveRight;
+                    break;
+                case Qt::Key_D:
+                    newEye += moveRight;
+                    newLook += moveRight;
+                    break;
+                case Qt::Key_Control:
+                    newEye -= moveUp;
+                    newLook -= moveUp;
+                    break;
+                case Qt::Key_Space:
+                    newEye += moveUp;
+                    newLook += moveUp;
+                    break;
+                default:
+                    break;
+                }
+
+                // Check if new position would be within bounds
+                float maxRadius = 45.0f;  // Slightly less than dome radius
+                glm::vec2 newHorizontalPos(newEye.x, newEye.z);
+                float newRadius = glm::length(newHorizontalPos);
+
+                // Only apply movement if it keeps us within bounds
+                if (newRadius <= maxRadius &&
+                    newEye.y >= m_minHeight &&
+                    newEye.y <= m_maxHeight) {
+                    m_eye = newEye;
+                    m_look = newLook;
+                }
             }
         }
     }
 
+    m_elapsedTimer.restart();
     rebuildMatrices();
 }
+
+
 
 void GLRenderer::paintDome(){
 
@@ -392,32 +591,51 @@ void GLRenderer::paintTerrain(){
     glm::mat4 terrainModel = glm::mat4(1.0f);
     terrainModel = glm::translate(terrainModel, glm::vec3(0.0f, -0.5f, 0.0f)); // Adjust terrain position
 
-    terrainModel = glm::rotate(terrainModel, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    terrainModel = glm::rotate(terrainModel, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &terrainModel[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
 
-    // Draw terrain
-    glDrawArrays(GL_TRIANGLES, 0, m_terrainData.size() / 9);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_textureID);
+    textureLocation = glGetUniformLocation(m_terrain_shader, "texture1");
+    glUniform1i(textureLocation, 0);
+
+
+
+    int res = m_terrain.getResolution();
+    glBindVertexArray(m_terrainVao);  // Bind VAO
+    //glDrawArrays(GL_TRIANGLES, 0,  m_terrainData.size() / 11);  // Use correct vertex count
+    glDrawArrays(GL_TRIANGLES, 0,  res*res*6);
+    glBindVertexArray(0);
 
     glBindVertexArray(0);
     glUseProgram(0);
 
 }
 
-void GLRenderer::settingsChanged()
-{
+void GLRenderer::settingsChanged() {
     makeCurrent();
-    timeToSunPos(settings.time);
-    if (m_particleSystem != nullptr) {
+
+    // Check if this is a weather type change
+    if (m_particleSystem != nullptr &&
+        ((settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN) != m_weatherEnabled ||
+         (settings.weather == WeatherType::SNOW) != m_isSnow)) {
+
         m_weatherEnabled = (settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN);
         m_isSnow = settings.weather == WeatherType::SNOW;
         m_particleSystem->setParticleType(m_isSnow);
     }
+
+    // Update time and view-related settings
+    timeToSunPos(settings.time);
     m_fov = settings.fov;
+
     rebuildMatrices();
-    update(); // asks for a PaintGL() call to occur
+    update();
+    doneCurrent();
 }
 
 void GLRenderer::timeToSunPos(const float time)
@@ -468,52 +686,6 @@ void GLRenderer::mousePressEvent(QMouseEvent *event)
 //     rebuildMatrices();
 // }
 
-void GLRenderer::mouseMoveEvent(QMouseEvent *event)
-{
-    if (m_mouseDown == MouseStaus::LEFT)
-    {
-        int posX = event->position().x();
-        int posY = event->position().y();
-        int deltaX = posX - m_prev_mouse_pos.x;
-        int deltaY = posY - m_prev_mouse_pos.y;
-        m_prev_mouse_pos = glm::vec2(posX, posY);
-
-        glm::vec3 look = m_look;
-        glm::vec3 up = m_up;
-        glm::vec3 rotAxisH = glm::vec3(0, 1, 0);
-        glm::vec3 rotAxisV = glm::normalize(glm::cross(look, up));
-        glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, -deltaX * m_rotSpeed);
-        glm::mat3 rotMatV = Camera::getRotationMatrix(rotAxisV, -deltaY * m_rotSpeed);
-        m_look = rotMatV * rotMatH * look;
-        rebuildMatrices();
-    }
-    else if (m_mouseDown == MouseStaus::RIGHT)
-    {
-        int posX = event->position().x();
-        int posY = event->position().y();
-        int deltaX = posX - m_prev_mouse_pos.x;
-        int deltaY = posY - m_prev_mouse_pos.y;
-        m_prev_mouse_pos = glm::vec2(posX, posY);
-
-        float distanceToLook = glm::length(m_eye - m_look);
-
-        glm::vec3 rotAxisH = glm::vec3(0, 1, 0);
-        glm::mat3 rotMatH = Camera::getRotationMatrix(rotAxisH, -deltaX * m_rotSpeed);
-
-        glm::vec3 lookDir = glm::normalize(m_look - m_eye);
-        glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
-        glm::mat3 rotMatV = Camera::getRotationMatrix(rightDir, deltaY * m_rotSpeed);
-
-        glm::vec3 eyeToLook = m_eye - m_look;
-        eyeToLook = rotMatV * rotMatH * eyeToLook;
-
-        m_eye = m_look + glm::normalize(eyeToLook) * distanceToLook;
-
-        m_up = rotMatV * rotMatH * m_up;
-
-        rebuildMatrices();
-    }
-}
 
 void GLRenderer::mouseReleaseEvent(QMouseEvent *event)
 {
@@ -530,8 +702,17 @@ void GLRenderer::wheelEvent(QWheelEvent *event)
     rebuildMatrices();
 }
 
-void GLRenderer::keyPressEvent(QKeyEvent *event)
-{
+void GLRenderer::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_R && !event->isAutoRepeat()) {
+        m_autoRotate = !m_autoRotate;
+        if (m_autoRotate) {
+            // Reset camera position when enabling auto-rotate
+            m_eye = glm::vec3(m_trajectoryRadius, m_trajectoryHeight, 0);
+            m_look = glm::vec3(0, 0, 0);
+            m_up = glm::vec3(0, 1, 0);
+            m_rotationAngle = 0.0f;
+        }
+    }
     m_keyMap[Qt::Key(event->key())] = true;
 }
 

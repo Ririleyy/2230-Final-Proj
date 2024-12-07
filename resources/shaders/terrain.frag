@@ -1,19 +1,12 @@
 #version 330 core
-in vec4 vert;
-in vec4 norm;
-in vec3 color;
-in vec3 lightDir;
 
-uniform bool wireshade;
+in vec2 fragUV; // UV coordinates from vertex shader
+uniform sampler2D texture1; // Texture sampler
 
-out  vec4 fragColor;
+out vec4 fragColor;
 
-void main(void)
-{
-    if (wireshade) {
-        fragColor = vec4(color,1);
-    } else {
-        vec3 objColor = color;
-        fragColor = vec4((clamp(dot(norm.xyz, lightDir), 0, 1) * 0.7 +  0.3) * objColor, 1.0);
-    }
+void main() {
+    vec3 texColor = texture(texture1, fragUV).rgb; // Sample the texture using UV coordinates
+    fragColor = vec4(texColor, 1.0); // Output the texture color
+
 }

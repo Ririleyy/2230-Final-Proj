@@ -36,8 +36,6 @@ add_executable(${PROJECT_NAME}
     src/utils/camera.h
     src/settings.h
     src/utils/terrain.h src/utils/terrain.cpp
-    resources/shaders/terrain.vert
-    resources/shaders/terrain.frag
     src/utils/particle.h src/utils/particle.cpp
 
 
@@ -53,6 +51,9 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/shaders/terrain.frag
   resources/shaders/particle.frag
   resources/shaders/particle.vert
+  resources/images/indian-travel-destination-beautiful-attractive.jpg
+  resources/images/2.jpg
+
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`

@@ -87,6 +87,16 @@ private:
     MouseStaus m_mouseDown = MouseStaus::NONE;
     std::unordered_map<Qt::Key, bool> m_keyMap;
     int m_timer;
+    // Camera trajectory parameters
+    bool m_autoRotate = false;
+    float m_trajectoryRadius = 30.0f;    // Radius of circular path
+    float m_trajectoryHeight = 15.0f;    // Fixed height for camera
+    float m_rotationAngle = 0.0f;        // Current angle of rotation
+    const float m_rotationSpeed = 0.2f;   // Speed of rotation in radians/second
+    const float m_maxHeight = 45.0f;      // Maximum camera height
+    const float m_minHeight = 5.0f;       // Minimum camera height
+    void updateCameraPosition();
+    void constrainCamera();
 
     // camera parameters
     float m_angleX;

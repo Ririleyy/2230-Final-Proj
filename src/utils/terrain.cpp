@@ -271,3 +271,67 @@ float TerrainGenerator::computePerlin(float x, float y) {
 
 }
 
+glm::vec2 TerrainGenerator::worldToLocal(float worldX, float worldZ) {
+    return glm::vec2(
+        fmod(worldX, CHUNK_SIZE) / CHUNK_SIZE,
+        fmod(worldZ, CHUNK_SIZE) / CHUNK_SIZE
+    );
+}
+
+glm::vec2 TerrainGenerator::localToWorld(float localX, float localZ, int chunkX, int chunkZ) {
+    return glm::vec2(
+        chunkX * CHUNK_SIZE + localX * CHUNK_SIZE,
+        chunkZ * CHUNK_SIZE + localZ * CHUNK_SIZE
+    );
+}
+
+float TerrainGenerator::getWorldHeight(float worldX, float worldZ) {
+    // Scale down the coordinates for Perlin noise
+    float scaledX = worldX * 0.02f;
+    float scaledZ = worldZ * 0.02f;
+    return getHeight(scaledX, scaledZ) * 100.0f; // Amplify the height
+}
+
+std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ) {
+    std::vector<float> verts;
+    int verticesPerSide = static_cast<int>(CHUNK_SIZE / VERTEX_SPACING);
+    
+    for (int x = 0; x < verticesPerSide; x++) {
+        for (int z = 0; z < verticesPerSide; z++) {
+            // Calculate world positions
+            glm::vec2 worldPos = localToWorld(
+                static_cast<float>(x) / verticesPerSide,
+                static_cast<float>(z) / verticesPerSide,
+                chunkX, chunkZ
+            );
+            
+            // Generate vertices for two triangles
+            glm::vec3 p1(worldPos.x, getWorldHeight(worldPos.x, worldPos.y), worldPos.y);
+            glm::vec3 p2(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y), worldPos.y);
+            glm::vec3 p3(worldPos.x, getWorldHeight(worldPos.x, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
+            glm::vec3 p4(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
+            
+            // Calculate normals and colors
+            glm::vec3 n1 = glm::normalize(glm::cross(p2 - p1, p3 - p1));
+            glm::vec3 color = getColor(n1, p1);
+            
+            // Calculate UV coordinates
+            glm::vec2 uv1(static_cast<float>(x) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
+            glm::vec2 uv2(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
+            glm::vec2 uv3(static_cast<float>(x) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
+            glm::vec2 uv4(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
+            
+            // Add first triangle
+            addPointToVector(p1, n1, color, uv1, verts);
+            addPointToVector(p2, n1, color, uv2, verts);
+            addPointToVector(p3, n1, color, uv3, verts);
+            
+            // Add second triangle
+            addPointToVector(p2, n1, color, uv2, verts);
+            addPointToVector(p4, n1, color, uv4, verts);
+            addPointToVector(p3, n1, color, uv3, verts);
+        }
+    }
+    
+    return verts;
+}

@@ -9,7 +9,7 @@
 #include "utils/particle.h"
 
 
-GLRenderer::GLRenderer(QWidget *parent)
+GLRenderer::GLRenderer(QWidget* parent)
     : QOpenGLWidget(parent),
     m_angleX(6),
     m_angleY(0),
@@ -69,12 +69,12 @@ GLRenderer::~GLRenderer()
 glm::vec4 sphericalToCartesian(float phi, float theta)
 {
     return glm::vec4(glm::sin(phi) * glm::cos(theta),
-                     glm::cos(phi), // Y component should use cos(phi) directly
-                     glm::sin(phi) * glm::sin(theta),
-                     1);
+        glm::cos(phi), // Y component should use cos(phi) directly
+        glm::sin(phi) * glm::sin(theta),
+        1);
 }
 
-void pushVec3(glm::vec4 vec, std::vector<float> *data)
+void pushVec3(glm::vec4 vec, std::vector<float>* data)
 {
     data->push_back(vec.x);
     data->push_back(vec.y);
@@ -184,7 +184,7 @@ void GLRenderer::initializeGL()
         glGenVertexArrays(1, &m_sphere_vao);
         glBindVertexArray(m_sphere_vao);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void*>(0));
 
         // Initialize terrain
         bindTerrainVaoVbo();
@@ -195,7 +195,8 @@ void GLRenderer::initializeGL()
 
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         fprintf(stderr, "Error during initialization: %s\n", e.what());
     }
 }
@@ -234,7 +235,7 @@ void GLRenderer::setWeatherType(bool isSnow) {
     doneCurrent();
 }
 
-void GLRenderer::bindTerrainVaoVbo(){
+void GLRenderer::bindTerrainVaoVbo() {
 
     glUseProgram(m_terrain_shader);
 
@@ -262,25 +263,25 @@ void GLRenderer::bindTerrainVaoVbo(){
 
     // Configure vertex attributes
     glEnableVertexAttribArray(0); // Vertex position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void*>(0));
 
     glEnableVertexAttribArray(1); // Vertex normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
 
     glEnableVertexAttribArray(2); // Vertex color
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(6 * sizeof(GLfloat)));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void*>(6 * sizeof(GLfloat)));
 
     glEnableVertexAttribArray(3); // uv
 
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat),
-                          reinterpret_cast<void *>(9 * sizeof(GLfloat)));
+        reinterpret_cast<void*>(9 * sizeof(GLfloat)));
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glUseProgram(0);
 
 }
-void GLRenderer::bindTerrainTexture(){
+void GLRenderer::bindTerrainTexture() {
 
     glUseProgram(m_terrain_shader);
 
@@ -354,7 +355,7 @@ void GLRenderer::renderParticles() {
     glDisable(GL_PROGRAM_POINT_SIZE);
 }
 
-void GLRenderer::mouseMoveEvent(QMouseEvent *event) {
+void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
     if (m_mouseDown == MouseStaus::LEFT) {
         int posX = event->position().x();
         int posY = event->position().y();
@@ -422,7 +423,8 @@ void GLRenderer::constrainCamera() {
         // Adjust look point while maintaining direction
         glm::vec3 dir = glm::normalize(m_look - m_eye);
         m_look = m_eye + dir * glm::length(m_look - m_eye);
-    } else if (m_eye.y < m_minHeight) {
+    }
+    else if (m_eye.y < m_minHeight) {
         float adjustment = m_minHeight - m_eye.y;
         m_eye.y = m_minHeight;
 
@@ -468,7 +470,7 @@ void GLRenderer::updateCameraPosition() {
 }
 
 
-void GLRenderer::timerEvent(QTimerEvent *event) {
+void GLRenderer::timerEvent(QTimerEvent* event) {
     float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
 
     // Handle particle system updates
@@ -482,7 +484,8 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
 
     if (m_autoRotate) {
         updateCameraPosition();
-    } else {
+    }
+    else {
         // Calculate movement vectors
         glm::vec3 lookDir = glm::normalize(m_look - m_eye);
         glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
@@ -495,7 +498,7 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
         glm::vec3 originalLook = m_look;
 
         // Apply movements
-        for (auto &key : m_keyMap) {
+        for (auto& key : m_keyMap) {
             if (key.second) {
                 glm::vec3 newEye = m_eye;
                 glm::vec3 newLook = m_look;
@@ -529,18 +532,18 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
                     break;
                 }
 
-                // Check if new position would be within bounds
-                float maxRadius = 45.0f;  // Slightly less than dome radius
-                glm::vec2 newHorizontalPos(newEye.x, newEye.z);
-                float newRadius = glm::length(newHorizontalPos);
+                // // Check if new position would be within bounds
+                // float maxRadius = 45.0f;  // Slightly less than dome radius
+                // glm::vec2 newHorizontalPos(newEye.x, newEye.z);
+                // float newRadius = glm::length(newHorizontalPos);
 
-                // Only apply movement if it keeps us within bounds
-                if (newRadius <= maxRadius &&
-                    newEye.y >= m_minHeight &&
-                    newEye.y <= m_maxHeight) {
-                    m_eye = newEye;
-                    m_look = newLook;
-                }
+                // // Only apply movement if it keeps us within bounds
+                // if (newRadius <= maxRadius &&
+                //     newEye.y >= m_minHeight &&
+                //     newEye.y <= m_maxHeight) {
+                m_eye = newEye;
+                m_look = newLook;
+                // }
             }
         }
     }
@@ -551,14 +554,14 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
 
 
 
-void GLRenderer::paintDome(){
+void GLRenderer::paintDome() {
 
     glUseProgram(m_skydome_shader);
     glBindVertexArray(m_sphere_vao);
 
     glm::mat4 domeModel = glm::mat4(1.0f);
-    domeModel = glm::translate(domeModel, m_eye); 
-    domeModel = glm::scale(domeModel, glm::vec3(50, 50, 50));
+    domeModel = glm::translate(domeModel, m_eye);
+    domeModel = glm::scale(domeModel, glm::vec3(100, 100, 100));
 
     GLint modelLoc = glGetUniformLocation(m_skydome_shader, "model");
     GLint viewLoc = glGetUniformLocation(m_skydome_shader, "view");
@@ -585,38 +588,35 @@ void GLRenderer::paintDome(){
 
 }
 
-void GLRenderer::paintTerrain(){
+void GLRenderer::paintTerrain() {
     glUseProgram(m_terrain_shader);
 
-    glBindVertexArray(m_terrainVao);
+    // Update chunks based on camera position
+    updateTerrainChunks();
 
-    // Set up the model, view, and projection matrices
-    glm::mat4 terrainModel = glm::mat4(1.0f);
-    terrainModel = glm::translate(terrainModel, glm::vec3(0.0f, -0.5f, 0.0f)); // Adjust terrain position
+    // Render all visible chunks
+    for (const auto& pair : m_terrainChunks) {
+        const TerrainChunk& chunk = pair.second;
 
-    terrainModel = glm::rotate(terrainModel, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        glBindVertexArray(chunk.vao);
 
-    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &terrainModel[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
+        // Set up uniforms (model, view, projection matrices, etc.)
+        glm::mat4 model = glm::mat4(1.0f);
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &model[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
 
+        // Bind texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_textureID);
+        glUniform1i(textureLocation, 0);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_textureID);
-    textureLocation = glGetUniformLocation(m_terrain_shader, "texture1");
-    glUniform1i(textureLocation, 0);
-
-
-
-    int res = m_terrain.getResolution();
-    glBindVertexArray(m_terrainVao);  // Bind VAO
-    //glDrawArrays(GL_TRIANGLES, 0,  m_terrainData.size() / 11);  // Use correct vertex count
-    glDrawArrays(GL_TRIANGLES, 0,  res*res*6);
-    glBindVertexArray(0);
+        // Draw chunk
+        glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
+    }
 
     glBindVertexArray(0);
     glUseProgram(0);
-
 }
 
 void GLRenderer::settingsChanged() {
@@ -625,7 +625,7 @@ void GLRenderer::settingsChanged() {
     // Check if this is a weather type change
     if (m_particleSystem != nullptr &&
         ((settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN) != m_weatherEnabled ||
-         (settings.weather == WeatherType::SNOW) != m_isSnow)) {
+            (settings.weather == WeatherType::SNOW) != m_isSnow)) {
 
         m_weatherEnabled = (settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN);
         m_isSnow = settings.weather == WeatherType::SNOW;
@@ -666,7 +666,7 @@ void GLRenderer::resizeGL(int w, int h)
     m_proj = glm::perspective(glm::radians(m_fov), 1.0f * w / h, 0.01f, 1000.0f);
 }
 
-void GLRenderer::mousePressEvent(QMouseEvent *event)
+void GLRenderer::mousePressEvent(QMouseEvent* event)
 {
     // Set initial mouse position
     if (event->buttons().testFlag(Qt::LeftButton))
@@ -690,7 +690,7 @@ void GLRenderer::mousePressEvent(QMouseEvent *event)
 // }
 
 
-void GLRenderer::mouseReleaseEvent(QMouseEvent *event)
+void GLRenderer::mouseReleaseEvent(QMouseEvent* event)
 {
     if (!event->buttons().testFlag(Qt::LeftButton))
     {
@@ -698,14 +698,14 @@ void GLRenderer::mouseReleaseEvent(QMouseEvent *event)
     }
 }
 
-void GLRenderer::wheelEvent(QWheelEvent *event)
+void GLRenderer::wheelEvent(QWheelEvent* event)
 {
     // Update zoom based on event parameter
     m_zoom -= event->angleDelta().y() / 100.f;
     rebuildMatrices();
 }
 
-void GLRenderer::keyPressEvent(QKeyEvent *event) {
+void GLRenderer::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_R && !event->isAutoRepeat()) {
         m_autoRotate = !m_autoRotate;
         if (m_autoRotate) {
@@ -719,7 +719,7 @@ void GLRenderer::keyPressEvent(QKeyEvent *event) {
     m_keyMap[Qt::Key(event->key())] = true;
 }
 
-void GLRenderer::keyReleaseEvent(QKeyEvent *event)
+void GLRenderer::keyReleaseEvent(QKeyEvent* event)
 {
     m_keyMap[Qt::Key(event->key())] = false;
 }
@@ -730,4 +730,71 @@ void GLRenderer::rebuildMatrices()
     m_view = glm::lookAt(m_eye, m_look, m_up);
     m_proj = glm::perspective(glm::radians(m_fov), 1.0f * width() / height(), 0.01f, 1000.0f);
     update();
+}
+
+void GLRenderer::updateTerrainChunks() {
+    // Calculate current chunk position based on camera position
+    int currentChunkX = static_cast<int>(m_eye.x / 50.0f);
+    int currentChunkZ = static_cast<int>(m_eye.z / 50.0f);
+
+    // Create new chunks that are in range
+    for (int x = -RENDER_DISTANCE; x <= RENDER_DISTANCE; x++) {
+        for (int z = -RENDER_DISTANCE; z <= RENDER_DISTANCE; z++) {
+            int chunkX = currentChunkX + x;
+            int chunkZ = currentChunkZ + z;
+            int64_t key = getChunkKey(chunkX, chunkZ);
+
+            if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
+                createChunk(chunkX, chunkZ);
+            }
+        }
+    }
+
+    // Remove chunks that are out of range
+    for (auto it = m_terrainChunks.begin(); it != m_terrainChunks.end();) {
+        int chunkX = it->second.position.x;
+        int chunkZ = it->second.position.y;
+
+        if (abs(chunkX - currentChunkX) > RENDER_DISTANCE ||
+            abs(chunkZ - currentChunkZ) > RENDER_DISTANCE) {
+            glDeleteBuffers(1, &it->second.vbo);
+            glDeleteVertexArrays(1, &it->second.vao);
+            it = m_terrainChunks.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
+void GLRenderer::createChunk(int chunkX, int chunkZ) {
+    TerrainChunk chunk;
+    chunk.position = glm::ivec2(chunkX, chunkZ);
+
+    // Generate terrain data for this chunk
+    std::vector<float> terrainData = m_terrain.generateTerrainChunk(chunkX, chunkZ);
+    chunk.vertexCount = terrainData.size() / 11; // 11 floats per vertex
+
+    // Create and set up VAO/VBO
+    glGenVertexArrays(1, &chunk.vao);
+    glGenBuffers(1, &chunk.vbo);
+
+    glBindVertexArray(chunk.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
+    glBufferData(GL_ARRAY_BUFFER, terrainData.size() * sizeof(float), terrainData.data(), GL_STATIC_DRAW);
+
+    // Set up vertex attributes (same as before)
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), 0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(9 * sizeof(float)));
+
+    m_terrainChunks[getChunkKey(chunkX, chunkZ)] = chunk;
 }

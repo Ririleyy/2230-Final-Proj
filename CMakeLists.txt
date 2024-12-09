@@ -39,6 +39,7 @@ add_executable(${PROJECT_NAME}
     src/utils/particle.h src/utils/particle.cpp
 
 
+
 )
 # Specifies other files
 qt_add_resources(${PROJECT_NAME} "Resources"
@@ -51,9 +52,14 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/shaders/terrain.frag
   resources/shaders/particle.frag
   resources/shaders/particle.vert
+  resources/shaders/water.frag
+  resources/shaders/water.vert
   resources/images/indian-travel-destination-beautiful-attractive.jpg
   resources/images/2.jpg
-
+  resources/images/water_displacement_1.jpg
+  resources/images/water_displacement_2.jpg
+  resources/images/water_displacement_3.jpg
+  resources/images/water_displacement_4.jpg
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`

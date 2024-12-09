@@ -61,6 +61,11 @@ private:
     void paintTerrain();
     void paintDome();
 
+
+
+    void initializeWater();    // Initialize water surface
+    void paintWater();         // Render water surface
+
     // Particle system
     std::unique_ptr<ParticleSystem> m_particleSystem;
     GLuint m_particle_shader;
@@ -119,4 +124,17 @@ private:
     GLuint m_textureID;
     void bindTexture();
     int textureLocation;
+
+
+    // Water rendering related
+    GLuint m_water_vao;        // Vertex Array Object for water surface
+    GLuint m_water_vbo;        // Vertex Buffer Object for water surface
+    GLuint m_water_shader;     // Shader program for water
+    std::vector<float> m_waterData;  // Water surface vertex data
+
+    // Water displacement related
+    GLuint m_water_disp_texture;  // Displacement map texture
+    float m_water_time;           // For animation
+    QImage m_disp_image;          // Store displacement map image
+
 };

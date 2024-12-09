@@ -56,10 +56,17 @@ GLRenderer::~GLRenderer()
     glDeleteVertexArrays(1, &m_sphere_vao);
     if (m_skydome_shader) glDeleteProgram(m_skydome_shader);
 
+    // Clean up water resources
+    if (m_water_disp_texture) {
+        glDeleteTextures(1, &m_water_disp_texture);
+    }
+
     // Delete particle resources
     if (m_particle_vbo) glDeleteBuffers(1, &m_particle_vbo);
     if (m_particle_vao) glDeleteVertexArrays(1, &m_particle_vao);
     if (m_particle_shader) glDeleteProgram(m_particle_shader);
+
+
 
     doneCurrent();
 }
@@ -190,6 +197,9 @@ void GLRenderer::initializeGL()
         bindTerrainVaoVbo();
         bindTerrainTexture();
 
+        // Initialize water surface
+        initializeWater();
+
         // Initialize particle system
         initializeParticleSystem();
 
@@ -223,6 +233,81 @@ void GLRenderer::initializeParticleSystem() {
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, life));
 }
+
+void GLRenderer::initializeWater() {
+    // Create a simple quad for water surface
+    m_waterData = {
+        // positions         // texture coords
+        -1.0f, 0.0f, -1.0f,  0.0f, 0.0f,   // left-back
+        1.0f, 0.0f, -1.0f,  1.0f, 0.0f,   // right-back
+        1.0f, 0.0f,  1.0f,  1.0f, 1.0f,   // right-front
+
+        -1.0f, 0.0f, -1.0f,  0.0f, 0.0f,   // left-back
+        1.0f, 0.0f,  1.0f,  1.0f, 1.0f,   // right-front
+        -1.0f, 0.0f,  1.0f,  0.0f, 1.0f    // left-front
+    };
+
+    // Generate and bind VAO
+    glGenVertexArrays(1, &m_water_vao);
+    glBindVertexArray(m_water_vao);
+
+    // Generate and bind VBO
+    glGenBuffers(1, &m_water_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m_water_vbo);
+    glBufferData(GL_ARRAY_BUFFER, m_waterData.size() * sizeof(float), m_waterData.data(), GL_STATIC_DRAW);
+
+    // Set vertex attributes
+    // Position attribute
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    // Texture coordinate attribute
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    // Load shader program
+    m_water_shader = ShaderLoader::createShaderProgram(":/resources/shaders/water.vert", ":/resources/shaders/water.frag");
+
+    // Unbind VAO and VBO
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+    // Initialize time
+    m_water_time = 0.0f;
+
+    // Load displacement texture
+    // QString disp_filepath = QString(":/resources/images/water_displacement.jpg");
+    // if (!m_disp_image.load(disp_filepath)) {
+    //     std::cerr << "Failed to load displacement texture: " << disp_filepath.toStdString() << std::endl;
+    //     return;
+    // }
+
+    QString disp_filepath = QString(":/resources/images/water_displacement_2.jpg");
+    if (!m_disp_image.load(disp_filepath)) {
+        std::cerr << "Failed to load displacement texture: " << disp_filepath.toStdString() << std::endl;
+        return;
+    }
+    std::cout << "Displacement texture loaded successfully. Size: "
+              << m_disp_image.width() << "x" << m_disp_image.height() << std::endl;
+
+    m_disp_image = m_disp_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind displacement texture
+    glGenTextures(1, &m_water_disp_texture);
+    glBindTexture(GL_TEXTURE_2D, m_water_disp_texture);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_disp_image.width(), m_disp_image.height(),
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, m_disp_image.bits());
+
+    // Set texture parameters for proper tiling
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 
 void GLRenderer::setWeatherType(bool isSnow) {
     if (!m_particleSystem) return;  // Guard against null pointer
@@ -326,10 +411,60 @@ void GLRenderer::paintGL()
     // Paint dome
     paintDome();
 
+    // Paint water
+    paintWater();
+
     // Paint particles last for proper transparency
     if (m_weatherEnabled && m_particleSystem) {
         renderParticles();
     }
+}
+
+void GLRenderer::paintWater() {
+    glUseProgram(m_water_shader);
+
+
+    // Make water movement more noticeable
+    m_water_time += 0.005f;  // Increase time step for faster movement
+    glUniform1f(glGetUniformLocation(m_water_shader, "time"), m_water_time);
+
+    // Increase displacement strength for more obvious effect
+    glUniform1f(glGetUniformLocation(m_water_shader, "dispStrength"), 0.1f);  // Increase from 0.02f
+
+    // Enable blending for transparency
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Update time
+    m_water_time += 0.016f;  // Assuming 60fps
+
+    // Set uniforms
+    glUniform1f(glGetUniformLocation(m_water_shader, "time"), m_water_time);
+    glUniform1f(glGetUniformLocation(m_water_shader, "dispStrength"), 0.02f);
+
+    // Set up the model matrix for water surface
+    glm::mat4 waterModel = glm::mat4(1.0f);
+    waterModel = glm::translate(waterModel, glm::vec3(0.0f, -0.4f, 0.0f));
+    waterModel = glm::scale(waterModel, glm::vec3(20.0f, 1.0f, 20.0f));
+
+    // Set transformation matrices
+    glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "model"), 1, GL_FALSE, &waterModel[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
+    glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
+
+    // Bind displacement texture
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_water_disp_texture);
+    glUniform1i(glGetUniformLocation(m_water_shader, "dispTexture"), 1);
+
+    // Render water surface
+    glBindVertexArray(m_water_vao);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    // Cleanup
+    glDisable(GL_BLEND);
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
 
 void GLRenderer::renderParticles() {

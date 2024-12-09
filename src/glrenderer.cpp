@@ -244,16 +244,7 @@ void GLRenderer::bindTerrainVaoVbo(){
 
     // Generate terrain data
     m_terrainData = m_terrain.generateTerrain();
-    // std::cout << "m_terrainData size: " << m_terrainData.size() << std::endl;
-    // for (size_t i = 0; i < m_terrainData.size(); ++i) {
-    //     std::cout << std::fixed << std::setprecision(6) << m_terrainData[i] << " ";
 
-    //     // Add formatting for readability (e.g., print new line after every 11 floats)
-    //     if ((i + 1) % 11 == 0) {
-    //         std::cout << std::endl; // New line after one vertex's data (if 11 floats per vertex)
-    //     }
-    // }
-    // std::cout << std::endl;
 
     // Generate and bind VBO
     glGenBuffers(1, &m_terrainVbo);
@@ -284,9 +275,11 @@ void GLRenderer::bindTerrainTexture(){
 
     glUseProgram(m_terrain_shader);
 
-    QString kitten_filepath = QString(":/resources/images/2.jpg");
-    if (!m_image.load(kitten_filepath)) {
-        std::cerr << "Failed to load texture: " << kitten_filepath.toStdString() << std::endl;
+    QString snow_filepath = QString(":/resources/images/indian-travel-destination-beautiful-attractive.jpg");
+    //QString kitten_filepath = QString(":/resources/images/front-view-tree-bark.jpg");
+
+    if (!m_image.load(snow_filepath)) {
+        std::cerr << "Failed to load texture: " << snow_filepath.toStdString() << std::endl;
         return;
     }
 
@@ -312,7 +305,27 @@ void GLRenderer::bindTerrainTexture(){
 
     glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture
 
+    // Load the second texture
+    QString rock_filepath = QString(":/resources/images/front-view-tree-bark.jpg");
+    if (!m_image.load(rock_filepath)) {
+        std::cerr << "Failed to load texture: " << rock_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    glGenTextures(1, &m_textureID2);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_textureID2);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     glUseProgram(0);
+
 
 }
 
@@ -448,21 +461,50 @@ void GLRenderer::constrainCamera() {
     }
 }
 
+// void GLRenderer::updateCameraPosition() {
+//     if (!m_autoRotate) return;
+
+//     float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
+//     m_elapsedTimer.restart();
+
+//     // Update rotation angle
+//     m_rotationAngle += m_rotationSpeed * deltaTime;
+
+//     // Calculate new camera position on circular path
+//     m_eye.x = m_trajectoryRadius * cos(m_rotationAngle);
+//     m_eye.z = m_trajectoryRadius * sin(m_rotationAngle);
+//     m_eye.y = m_trajectoryHeight;
+
+//     // Always look at center of terrain
+//     m_look = glm::vec3(0.0f, 0.0f, 0.0f);
+//     m_up = glm::vec3(0.0f, 1.0f, 0.0f);
+// }
+
 void GLRenderer::updateCameraPosition() {
     if (!m_autoRotate) return;
 
+    // Get elapsed time and restart the timer
     float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
     m_elapsedTimer.restart();
 
-    // Update rotation angle
-    m_rotationAngle += m_rotationSpeed * deltaTime;
+    // Clamp deltaTime to avoid large jumps
+    deltaTime = glm::clamp(deltaTime, 0.0f, 0.05f); // Max 50ms per frame
 
-    // Calculate new camera position on circular path
-    m_eye.x = m_trajectoryRadius * cos(m_rotationAngle);
-    m_eye.z = m_trajectoryRadius * sin(m_rotationAngle);
-    m_eye.y = m_trajectoryHeight;
+    // Update rotation angle using easing (optional)
+    float easedDeltaTime = deltaTime * glm::smoothstep(0.0f, 1.0f, deltaTime);
+    m_rotationAngle += m_rotationSpeed * easedDeltaTime;
 
-    // Always look at center of terrain
+    // Calculate target position on circular path
+    glm::vec3 targetPosition;
+    targetPosition.x = m_trajectoryRadius * cos(m_rotationAngle);
+    targetPosition.z = m_trajectoryRadius * sin(m_rotationAngle);
+    targetPosition.y = m_trajectoryHeight;
+
+    // Interpolate camera position for smooth transition
+    float smoothingFactor = 0.1f; // Adjust for more/less smoothness
+    m_eye = glm::mix(m_eye, targetPosition, smoothingFactor);
+
+    // Always look at the center of the terrain
     m_look = glm::vec3(0.0f, 0.0f, 0.0f);
     m_up = glm::vec3(0.0f, 1.0f, 0.0f);
 }
@@ -585,21 +627,110 @@ void GLRenderer::paintDome(){
 
 }
 
+<<<<<<< Updated upstream
 void GLRenderer::paintTerrain(){
+=======
+// void GLRenderer::paintTerrain() {
+//     glUseProgram(m_terrain_shader);
+
+//     // Update chunks based on camera position
+//     updateTerrainChunks();
+
+//     // Render all visible chunks
+//     for (const auto& pair : m_terrainChunks) {
+
+//         const TerrainChunk& chunk = pair.second;
+
+
+
+//         glBindVertexArray(chunk.vao);
+
+//         // Set up uniforms (model, view, projection matrices, etc.)
+//         glm::mat4 model = glm::mat4(1.0f);
+//         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &model[0][0]);
+//         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
+//         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
+
+//         // Bind texture
+//         glActiveTexture(GL_TEXTURE0);
+//         glBindTexture(GL_TEXTURE_2D, m_textureID);
+//         glUniform1i(textureLocation, 0);
+
+//         // Draw chunk
+//         glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
+//     }
+
+//     glBindVertexArray(0);
+//     glUseProgram(0);
+// }
+void GLRenderer::paintTerrain() {
+>>>>>>> Stashed changes
     glUseProgram(m_terrain_shader);
 
     glBindVertexArray(m_terrainVao);
 
+<<<<<<< Updated upstream
     // Set up the model, view, and projection matrices
     glm::mat4 terrainModel = glm::mat4(1.0f);
     terrainModel = glm::translate(terrainModel, glm::vec3(0.0f, -0.5f, 0.0f)); // Adjust terrain position
+=======
+    // Render all visible chunks with alpha fading
+    for (auto& [key, chunk] : m_terrainChunks) {
+        // Handle FADING_IN chunks
+        if (chunk.state == ChunkState::FADING_IN) {
+            float fadeDuration = 2000.0f; // 2 seconds fade-in duration
+            chunk.alpha = std::min(chunk.fadeTimer.elapsed() / fadeDuration, 1.0f);
+
+            if (chunk.alpha >= 1.0f) {
+                chunk.state = ChunkState::ACTIVE; // Fully visible
+            }
+        }
+        // Handle FADING_OUT chunks
+        else if (chunk.state == ChunkState::FADING_OUT) {
+            float fadeDuration = 2000.0f; // 2 seconds fade-out duration
+            chunk.alpha = std::max(1.0f - (chunk.fadeTimer.elapsed() / fadeDuration), 0.0f);
+
+            if (chunk.alpha <= 0.0f) {
+                continue; // Skip rendering fully transparent chunks
+            }
+        }
+
+        // Skip rendering for chunks with alpha <= 0
+        if (chunk.alpha <= 0.0f) {
+            continue;
+        }
+>>>>>>> Stashed changes
 
     terrainModel = glm::rotate(terrainModel, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
 
+<<<<<<< Updated upstream
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &terrainModel[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
 
+=======
+        // Set up uniforms (model, view, projection matrices, etc.)
+        glm::mat4 model = glm::mat4(1.0f);
+
+        model = glm::translate(glm::vec3(0.0,20.0,0.0));
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &model[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
+
+        // Bind texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_textureID);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture1"), 0);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, m_textureID2);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture2"), 1);
+
+        // Pass alpha to shader
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "alpha"), chunk.alpha);
+
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "activeTexture"), activeTexture);
+>>>>>>> Stashed changes
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_textureID);
@@ -731,3 +862,126 @@ void GLRenderer::rebuildMatrices()
     m_proj = glm::perspective(glm::radians(m_fov), 1.0f * width() / height(), 0.01f, 1000.0f);
     update();
 }
+<<<<<<< Updated upstream
+=======
+
+// void GLRenderer::updateTerrainChunks() {
+//     // Calculate current chunk position based on camera position
+//     int currentChunkX = static_cast<int>(m_eye.x / 50.0f);
+//     int currentChunkZ = static_cast<int>(m_eye.z / 50.0f);
+
+//     // Create new chunks that are in range
+//     for (int x = -RENDER_DISTANCE; x <= RENDER_DISTANCE; x++) {
+//         for (int z = -RENDER_DISTANCE; z <= RENDER_DISTANCE; z++) {
+//             int chunkX = currentChunkX + x;
+//             int chunkZ = currentChunkZ + z;
+//             int64_t key = getChunkKey(chunkX, chunkZ);
+
+//             if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
+//                 createChunk(chunkX, chunkZ);
+//             }
+//         }
+//     }
+
+//     // Remove chunks that are out of range
+//     for (auto it = m_terrainChunks.begin(); it != m_terrainChunks.end();) {
+//         int chunkX = it->second.position.x;
+//         int chunkZ = it->second.position.y;
+
+//         if (abs(chunkX - currentChunkX) > RENDER_DISTANCE ||
+//             abs(chunkZ - currentChunkZ) > RENDER_DISTANCE) {
+//             glDeleteBuffers(1, &it->second.vbo);
+//             glDeleteVertexArrays(1, &it->second.vao);
+//             it = m_terrainChunks.erase(it);
+//         }
+//         else {
+//             ++it;
+//         }
+//     }
+// }
+void GLRenderer::updateTerrainChunks() {
+    // Calculate current chunk position based on camera position
+    int currentChunkX = static_cast<int>(m_eye.x / 30.0f);
+    int currentChunkZ = static_cast<int>(m_eye.z / 20.0f);
+
+    // Mark chunks for fading out if they are out of range
+    for (auto& [key, chunk] : m_terrainChunks) {
+        int chunkX = chunk.position.x;
+        int chunkZ = chunk.position.y;
+
+        if (chunk.state != ChunkState::FADING_OUT &&
+            (abs(chunkX - currentChunkX) > RENDER_DISTANCE ||
+             abs(chunkZ - currentChunkZ) > RENDER_DISTANCE)) {
+            chunk.state = ChunkState::FADING_OUT;
+            chunk.fadeTimer.start(); // Start fade-out timer
+        }
+    }
+
+    // Create new chunks that are in range
+    for (int radius = 0; radius <= RENDER_DISTANCE; radius++) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                // Skip outer layers until dx or dz equals radius
+                if (std::abs(dx) != radius && std::abs(dz) != radius) continue;
+
+                int chunkX = currentChunkX + dx;
+                int chunkZ = currentChunkZ + dz;
+                int64_t key = getChunkKey(chunkX, chunkZ);
+
+                if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
+                    createChunk(chunkX, chunkZ);
+                }
+            }
+        }
+    }
+
+    // Remove chunks that have finished fading out
+    for (auto it = m_terrainChunks.begin(); it != m_terrainChunks.end();) {
+        if (it->second.state == ChunkState::FADING_OUT &&
+            it->second.fadeTimer.elapsed() > 2000) { // 2 seconds fade-out duration
+            glDeleteBuffers(1, &it->second.vbo);
+            glDeleteVertexArrays(1, &it->second.vao);
+            it = m_terrainChunks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+void GLRenderer::createChunk(int chunkX, int chunkZ) {
+    TerrainChunk chunk;
+    chunk.position = glm::ivec2(chunkX, chunkZ);
+
+    chunk.alpha = 0.0f;
+    chunk.fadeTimer.start();
+    chunk.state = ChunkState::FADING_IN;
+
+
+    // Generate terrain data for this chunk
+    std::vector<float> terrainData = m_terrain.generateTerrainChunk(chunkX, chunkZ);
+    chunk.vertexCount = terrainData.size() / 11; // 11 floats per vertex
+
+    // Create and set up VAO/VBO
+    glGenVertexArrays(1, &chunk.vao);
+    glGenBuffers(1, &chunk.vbo);
+
+    glBindVertexArray(chunk.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
+    glBufferData(GL_ARRAY_BUFFER, terrainData.size() * sizeof(float), terrainData.data(), GL_STATIC_DRAW);
+
+    // Set up vertex attributes (same as before)
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), 0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(9 * sizeof(float)));
+
+    m_terrainChunks[getChunkKey(chunkX, chunkZ)] = chunk;
+}
+
+>>>>>>> Stashed changes

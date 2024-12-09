@@ -109,6 +109,34 @@ private:
     const float m_translSpeed = 5;
 
     // terrain
+<<<<<<< Updated upstream
+=======
+
+    enum class ChunkState {
+        FADING_IN,
+        ACTIVE,
+        FADING_OUT,
+        REMOVING
+    };
+    struct TerrainChunk {
+        GLuint vao;
+        GLuint vbo;
+        int vertexCount;
+        glm::ivec2 position; // Chunk coordinates
+        float alpha; // Start invisible
+        ChunkState state;
+        QElapsedTimer fadeTimer;
+
+
+    };
+    std::unordered_map<int64_t, TerrainChunk> m_terrainChunks;
+    static const int RENDER_DISTANCE = 5;
+    void updateTerrainChunks();
+    void createChunk(int chunkX, int chunkZ);
+    int64_t getChunkKey(int chunkX, int chunkZ) {
+        return (static_cast<int64_t>(chunkX) << 32) | static_cast<uint32_t>(chunkZ);
+    }
+>>>>>>> Stashed changes
     GLuint m_terrain_shader;
     GLuint m_terrainVao;
     GLuint m_terrainVbo;
@@ -117,6 +145,8 @@ private:
     void bindTerrainTexture();
     QImage m_image;
     GLuint m_textureID;
+    GLuint m_textureID2;
     void bindTexture();
     int textureLocation;
+    int activeTexture = 0;
 };

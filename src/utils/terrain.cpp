@@ -87,10 +87,10 @@ std::vector<float> TerrainGenerator::generateTerrain() {
             glm::vec3 n3 = getNormal(x2, y2);
             glm::vec3 n4 = getNormal(x1, y2);
 
-            glm::vec3 c1 = getColor(n1, p1);
-            glm::vec3 c2 = getColor(n2, p2);
-            glm::vec3 c3 = getColor(n3, p3);
-            glm::vec3 c4 = getColor(n4, p4);
+            glm::vec3 c1 = getColor(p1);
+            glm::vec3 c2 = getColor(p2);
+            glm::vec3 c3 = getColor(p3);
+            glm::vec3 c4 = getColor(p4);
 
             glm::vec2 uv1 = calculateUV(x1, y1, m_resolution);
             glm::vec2 uv2 = calculateUV(x2, y1, m_resolution);
@@ -128,6 +128,9 @@ glm::vec3 TerrainGenerator::getPosition(int row, int col) {
     float x = 1.0 * row / m_resolution;
     float y = 1.0 * col / m_resolution;
     float z = getHeight(x, y);
+    if (z <= m_waterAttr.height) {
+        z = m_waterAttr.height;
+    }
     return glm::vec3(x,y,z);
 }
 
@@ -146,16 +149,27 @@ float interpolate(float A, float B, float alpha) {
 
 float TerrainGenerator::getHeight(float x, float y, int lacunarity, float persistence, int octaves) {
     float total = 0;
-    float maxAmplitude = 0;  // Used to normalize the result to the range [0, 1]
-
+    float maxAmplitude = 0;
+    
+    // Add a scaling factor to reduce overall height variation
+    float heightScale = 0.3f; // Reduce this value for flatter terrain (try 0.1f to 0.5f)
+    
+    // Add a base frequency to control the "spread" of hills
+    float baseFrequency = 0.5f; // Reduce this value for gentler, wider hills (try 0.3f to 1.0f)
+    
     for (int i = 0; i < octaves; i++) {
-        float frequency = std::pow(lacunarity, i);
-        float amplitude = std::pow(persistence, i);
+        float frequency = baseFrequency * std::pow(lacunarity, i);
+        float amplitude = heightScale * std::pow(persistence, i);
+        
         total += computePerlin(x * frequency, y * frequency) * amplitude;
-
         maxAmplitude += amplitude;
     }
-    return total / maxAmplitude;
+    
+    // Optional: Add bias to make the terrain generally flatter
+    float flatBias = 0.5f; // Adjust between 0.0f and 1.0f
+    float result = (total / maxAmplitude);// * (1.0f - flatBias) + flatBias;
+    
+    return result;
 }
 
 // Computes the normal of a vertex by averaging neighbors
@@ -188,36 +202,38 @@ glm::vec3 TerrainGenerator::getNormal(int row, int col) {
 }
 
 // Computes color of vertex using normal and, optionally, position
-glm::vec3 TerrainGenerator::getColor(glm::vec3 normal, glm::vec3 position) {
-    // Task 10: compute color as a function of the normal and position
-    // bool height_z =false;
-    // if (position.z > 0.0f){
-
-    //     height_z = true;
-
-    // }
-
-    // //normal
-    // glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f);
-    // float dotProduct = glm::dot(normal, up);
-    // bool normal_z = false;
-    // if (dotProduct > 0.8f){
-
-    //     normal_z = true;
-
-
-    // }
-
-    // if (height_z && normal_z) {
-    //     return glm::vec3(1.0f, 1.0f, 1.0f);
-    // } else {
-    //     return glm::vec3(0.5f, 0.5f, 0.5f);
-    // }
-    return glm::vec3(0.5f, 0.5f, 0.5f);
-
-
+glm::vec3 TerrainGenerator::getColor(glm::vec3 position) {
+    float height = position.y;
+    float transitionRange = 2.0f; // Adjust this value to control the transition width
+    
+    glm::vec3 color;
+    
+    if (height <= m_waterAttr.height) {
+        color = m_waterAttr.color;
+    } else if (height <= m_sandAttr.height) {
+        // Transition from water to sand
+        float t = (height - m_waterAttr.height) / (transitionRange);
+        t = glm::clamp(t, 0.0f, 1.0f);
+        color = glm::mix(m_waterAttr.color, m_sandAttr.color, t);
+    } else if (height <= m_grassAttr.height) {
+        // Transition from sand to grass
+        float t = (height - m_sandAttr.height) / (transitionRange);
+        t = glm::clamp(t, 0.0f, 1.0f);
+        color = glm::mix(m_sandAttr.color, m_grassAttr.color, t);
+    } else if (height <= m_rockAttr.height) {
+        // Transition from grass to rock
+        float t = (height - m_grassAttr.height) / (transitionRange);
+        t = glm::clamp(t, 0.0f, 1.0f);
+        color = glm::mix(m_grassAttr.color, m_rockAttr.color, t);
+    } else {
+        // Transition from rock to snow
+        float t = (height - m_rockAttr.height) / (transitionRange);
+        t = glm::clamp(t, 0.0f, 1.0f);
+        color = glm::mix(m_rockAttr.color, m_snowAttr.color, t);
+    }
+    
+    return color;
 }
-
 // Computes the intensity of Perlin noise at some point
 float TerrainGenerator::computePerlin(float x, float y) {
     // Task 1: get grid indices (as ints)
@@ -277,7 +293,11 @@ float TerrainGenerator::getWorldHeight(float worldX, float worldZ) {
     // Scale down the coordinates for Perlin noise
     float scaledX = worldX * 0.02f;
     float scaledZ = worldZ * 0.02f;
-    return getHeight(scaledX, scaledZ) * 100.0f; // Amplify the height
+    float normalizedHeight = getHeight(scaledX, scaledZ);
+    if (normalizedHeight <= m_waterAttr.height / 50) {
+        return m_waterAttr.height;
+    }
+    return normalizedHeight * 50.0f; // Amplify the height
 }
 
 std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ) {
@@ -301,7 +321,7 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
             
             // Calculate normals and colors
             glm::vec3 n1 = glm::normalize(glm::cross(p2 - p1, p3 - p1));
-            glm::vec3 color = getColor(n1, p1);
+            glm::vec3 color = getColor(p1);
             
             // Calculate UV coordinates
             glm::vec2 uv1(static_cast<float>(x) / verticesPerSide, static_cast<float>(z) / verticesPerSide);

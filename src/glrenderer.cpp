@@ -375,7 +375,7 @@ void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
 
         // Update look position and up vector
         m_look = m_eye + dir;
-        m_up = glm::normalize(glm::cross(right, dir));
+        // m_up = glm::normalize(glm::cross(right, dir));
 
         rebuildMatrices();
     }

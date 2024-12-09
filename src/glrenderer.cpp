@@ -423,26 +423,18 @@ void GLRenderer::paintGL()
 void GLRenderer::paintWater() {
     glUseProgram(m_water_shader);
 
-
-    // Make water movement more noticeable
-    m_water_time += 0.005f;  // Increase time step for faster movement
-    glUniform1f(glGetUniformLocation(m_water_shader, "time"), m_water_time);
-
-    // Increase displacement strength for more obvious effect
-    glUniform1f(glGetUniformLocation(m_water_shader, "dispStrength"), 0.1f);  // Increase from 0.02f
-
     // Enable blending for transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Update time
-    m_water_time += 0.016f;  // Assuming 60fps
-
-    // Set uniforms
+    // Update and set time uniform with increased speed
+    m_water_time += 0.01f;  // Doubled animation speed
     glUniform1f(glGetUniformLocation(m_water_shader, "time"), m_water_time);
-    glUniform1f(glGetUniformLocation(m_water_shader, "dispStrength"), 0.02f);
 
-    // Set up the model matrix for water surface
+    // Increase displacement strength for more obvious effect
+    glUniform1f(glGetUniformLocation(m_water_shader, "dispStrength"), 0.5f);
+
+    // Set up model matrix
     glm::mat4 waterModel = glm::mat4(1.0f);
     waterModel = glm::translate(waterModel, glm::vec3(0.0f, -0.4f, 0.0f));
     waterModel = glm::scale(waterModel, glm::vec3(20.0f, 1.0f, 20.0f));
@@ -452,10 +444,10 @@ void GLRenderer::paintWater() {
     glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
 
-    // Bind displacement texture
-    glActiveTexture(GL_TEXTURE1);
+    // Correct texture binding
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_water_disp_texture);
-    glUniform1i(glGetUniformLocation(m_water_shader, "dispTexture"), 1);
+    glUniform1i(glGetUniformLocation(m_water_shader, "dispTexture"), 0);
 
     // Render water surface
     glBindVertexArray(m_water_vao);

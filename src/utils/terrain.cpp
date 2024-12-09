@@ -144,30 +144,18 @@ float interpolate(float A, float B, float alpha) {
     return result;
 }
 
-// Takes a normalized (x, y) position, in range [0,1)
-// Returns a height value, z, by sampling a noise function
-float TerrainGenerator::getHeight(float x, float y) {
-
-
+float TerrainGenerator::getHeight(float x, float y, int lacunarity, float persistence, int octaves) {
     float total = 0;
-    float amplitude = 1.0;
-    float frequency = 1.0;
     float maxAmplitude = 0;  // Used to normalize the result to the range [0, 1]
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < octaves; i++) {
+        float frequency = std::pow(lacunarity, i);
+        float amplitude = std::pow(persistence, i);
         total += computePerlin(x * frequency, y * frequency) * amplitude;
 
-
         maxAmplitude += amplitude;
-        amplitude *= 0.5;
-        frequency *= 2.0;
     }
-
-
     return total / maxAmplitude;
-
-
-
 }
 
 // Computes the normal of a vertex by averaging neighbors

@@ -10,10 +10,17 @@ enum class WeatherType {
     RAIN
 };
 
+enum class MountainType {
+    SNOW_MOUNTAIN,
+    ROCK_MOUNTAIN,
+    GRASS_MOUNTAIN
+};
+
 struct Settings {
     float fov;
     float time;
     WeatherType weather;
+    MountainType mountain;
 };
 
 

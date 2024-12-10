@@ -435,6 +435,31 @@ void GLRenderer::bindTerrainTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    QString grass_filepath = QString(":/resources/images/natural-landscape.jpg");
+    if (!m_image.load(grass_filepath)) {
+        std::cerr << "Failed to load texture: " << grass_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for grass
+    glGenTextures(1, &m_textureID3);
+    glActiveTexture(GL_TEXTURE2); // Use texture unit 2 for grass texture
+    glBindTexture(GL_TEXTURE_2D, m_textureID3);
+
+    // Upload texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Unbind texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     glUseProgram(0);
 
 }
@@ -835,12 +860,24 @@ void GLRenderer::paintTerrain() {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, m_textureID2);
         glUniform1i(glGetUniformLocation(m_terrain_shader, "texture2"), 1);
-
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, m_textureID3);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture3"), 2);
         // Pass alpha to shader
         glUniform1f(glGetUniformLocation(m_terrain_shader, "alpha"), chunk.alpha);
 
+        if(settings.mountain == MountainType::SNOW_MOUNTAIN){
+            activeTexture = 0;
+        }else if(settings.mountain==MountainType::ROCK_MOUNTAIN){
 
-        glUniform1f(glGetUniformLocation(m_terrain_shader, "activeTexture"), activeTexture);
+            activeTexture = 1;
+
+        }else if(settings.mountain==MountainType::GRASS_MOUNTAIN){
+            activeTexture = 2;
+        }
+
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "activeTexture"), activeTexture);
+
 
         glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
     }
@@ -861,6 +898,9 @@ void GLRenderer::settingsChanged() {
         m_isSnow = settings.weather == WeatherType::SNOW;
         m_particleSystem->setParticleType(m_isSnow);
     }
+
+
+
 
     // Update time and view-related settings
     timeToSunPos(settings.time);

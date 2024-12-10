@@ -34,6 +34,10 @@ private:
     QVBoxLayout *vLayout;
     QRadioButton *noWeatherButton;
 
+    QRadioButton *snowMountainButton;
+    QRadioButton *rockMountainButton;
+    QRadioButton *grassMountainButton;
+
     // Helper methods
     void createWeatherControls();
     void connectUIElements();
@@ -45,5 +49,10 @@ private:
     void createSliderSpinbox(QSlider *&slider, QSpinBox *&spinbox, int min, int max, int defaultVal);
     void setupWeatherControls();
     void initSettings();
+
+    //mountain
+    void createMountainControls();
+    void setupMountainControls();
+    void onMountainTypeChanged();
     // Event handlers
 };

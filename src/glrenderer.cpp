@@ -17,12 +17,11 @@ GLRenderer::GLRenderer(QWidget* parent)
     m_particle_vao(0),
     m_particle_vbo(0),
     m_particle_shader(0),
-    // Initialize camera trajectory parameters
-    m_autoRotate(false),
-    m_trajectoryRadius(30.0f),
-    m_trajectoryHeight(15.0f),
+    // Modify these values for higher initial position
+    m_trajectoryRadius(150.0f),    // Increased from 30.0f
+    m_trajectoryHeight(120.0f),    // Increased from 15.0f
     m_rotationAngle(0.0f),
-    // Initialize camera parameters
+    // Initialize camera parameters with higher position
     m_eye(glm::vec3(m_trajectoryRadius, m_trajectoryHeight, 0)),
     m_look(glm::vec3(0, 0, 0)),
     m_up(glm::vec3(0, 1, 0))
@@ -616,29 +615,25 @@ void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
-// Update constrainCamera to better handle vertical limits
 void GLRenderer::constrainCamera() {
-    // Constrain height
-    if (m_eye.y > m_maxHeight) {
-        float adjustment = m_eye.y - m_maxHeight;
-        m_eye.y = m_maxHeight;
+    // Constrain height (adjusted for larger dome)
+    const float maxHeight = 90.0f;  // Increased from 45.0f
+    const float minHeight = 10.0f;  // Increased from 5.0f
 
-        // Adjust look point while maintaining direction
-        glm::vec3 dir = glm::normalize(m_look - m_eye);
-        m_look = m_eye + dir * glm::length(m_look - m_eye);
+    if (m_eye.y > maxHeight) {
+        float adjustment = m_eye.y - maxHeight;
+        m_eye.y = maxHeight;
+        m_look.y -= adjustment;
     }
-    else if (m_eye.y < m_minHeight) {
-        float adjustment = m_minHeight - m_eye.y;
-        m_eye.y = m_minHeight;
-
-        // Adjust look point while maintaining direction
-        glm::vec3 dir = glm::normalize(m_look - m_eye);
-        m_look = m_eye + dir * glm::length(m_look - m_eye);
+    else if (m_eye.y < minHeight) {
+        float adjustment = minHeight - m_eye.y;
+        m_eye.y = minHeight;
+        m_look.y += adjustment;
     }
 
-    // Constrain radius
+    // Constrain radius (adjusted for dome size)
     glm::vec2 horizontalPos(m_eye.x, m_eye.z);
-    float maxRadius = 45.0f;  // Slightly less than dome radius
+    float maxRadius = 180.0f;  // Increased from 45.0f to match dome size
     float currentRadius = glm::length(horizontalPos);
 
     if (currentRadius > maxRadius) {
@@ -672,33 +667,29 @@ void GLRenderer::constrainCamera() {
 //     m_up = glm::vec3(0.0f, 1.0f, 0.0f);
 // }
 
+// Fix the auto-rotation functionality in updateCameraPosition():
 void GLRenderer::updateCameraPosition() {
     if (!m_autoRotate) return;
 
-    // Get elapsed time and restart the timer
-    float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
+    float deltaTime = m_elapsedTimer.elapsed() * 0.001f; // Convert to seconds
     m_elapsedTimer.restart();
 
-    // Clamp deltaTime to avoid large jumps
-    deltaTime = glm::clamp(deltaTime, 0.0f, 0.05f); // Max 50ms per frame
+    // Update rotation angle
+    m_rotationAngle += m_rotationSpeed * deltaTime;
 
-    // Update rotation angle using easing (optional)
-    float easedDeltaTime = deltaTime * glm::smoothstep(0.0f, 1.0f, deltaTime);
-    m_rotationAngle += m_rotationSpeed * easedDeltaTime;
+    // Calculate new camera position on circular path
+    m_eye.x = m_trajectoryRadius * cos(m_rotationAngle);
+    m_eye.z = m_trajectoryRadius * sin(m_rotationAngle);
+    m_eye.y = m_trajectoryHeight;
 
-    // Calculate target position on circular path
-    glm::vec3 targetPosition;
-    targetPosition.x = m_trajectoryRadius * cos(m_rotationAngle);
-    targetPosition.z = m_trajectoryRadius * sin(m_rotationAngle);
-    targetPosition.y = m_trajectoryHeight;
-
-    // Interpolate camera position for smooth transition
-    float smoothingFactor = 0.1f; // Adjust for more/less smoothness
-    m_eye = glm::mix(m_eye, targetPosition, smoothingFactor);
-
-    // Always look at the center of the terrain
+    // Keep camera looking at center
     m_look = glm::vec3(0.0f, 0.0f, 0.0f);
+
+    // Maintain up vector
     m_up = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    // Update view matrix
+    rebuildMatrices();
 }
 
 
@@ -979,11 +970,12 @@ void GLRenderer::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_R && !event->isAutoRepeat()) {
         m_autoRotate = !m_autoRotate;
         if (m_autoRotate) {
-            // Reset camera position when enabling auto-rotate
-            m_eye = glm::vec3(m_trajectoryRadius, m_trajectoryHeight, 0);
-            m_look = glm::vec3(0, 0, 0);
-            m_up = glm::vec3(0, 1, 0);
+            // Reset position and angle when starting auto-rotation
             m_rotationAngle = 0.0f;
+            m_eye = glm::vec3(m_trajectoryRadius, m_trajectoryHeight, 0.0f);
+            m_look = glm::vec3(0.0f, 0.0f, 0.0f);
+            m_up = glm::vec3(0.0f, 1.0f, 0.0f);
+            m_elapsedTimer.restart();
         }
     }
     m_keyMap[Qt::Key(event->key())] = true;

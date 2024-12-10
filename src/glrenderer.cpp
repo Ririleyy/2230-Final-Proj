@@ -616,9 +616,9 @@ void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void GLRenderer::constrainCamera() {
-    // Constrain height (adjusted for larger dome)
-    const float maxHeight = 90.0f;  // Increased from 45.0f
-    const float minHeight = 10.0f;  // Increased from 5.0f
+    // Constrain height
+    const float maxHeight = 90.0f;
+    const float minHeight = 10.0f;
 
     if (m_eye.y > maxHeight) {
         float adjustment = m_eye.y - maxHeight;
@@ -631,20 +631,24 @@ void GLRenderer::constrainCamera() {
         m_look.y += adjustment;
     }
 
-    // Constrain radius (adjusted for dome size)
+    // Constrain radius
     glm::vec2 horizontalPos(m_eye.x, m_eye.z);
-    float maxRadius = 180.0f;  // Increased from 45.0f to match dome size
+    float maxRadius = 180.0f;
     float currentRadius = glm::length(horizontalPos);
 
     if (currentRadius > maxRadius) {
-        // Scale back to maximum radius
-        float scale = maxRadius / currentRadius;
-        m_eye.x *= scale;
-        m_eye.z *= scale;
+        // Calculate the direction vector in the horizontal plane
+        glm::vec2 dir = glm::normalize(horizontalPos);
 
-        // Adjust look point while maintaining direction
-        glm::vec3 dir = glm::normalize(m_look - m_eye);
-        m_look = m_eye + dir * glm::length(m_look - m_eye);
+        // Move the camera back to the boundary
+        glm::vec2 newPos = dir * maxRadius;
+        m_eye.x = newPos.x;
+        m_eye.z = newPos.y;
+
+        // Adjust look point to maintain the same viewing direction
+        glm::vec3 viewDir = glm::normalize(m_look - m_eye);
+        float viewDistance = glm::length(m_look - m_eye);
+        m_look = m_eye + viewDir * viewDistance;
     }
 }
 
@@ -694,7 +698,7 @@ void GLRenderer::updateCameraPosition() {
 
 
 void GLRenderer::timerEvent(QTimerEvent* event) {
-    float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
+    float deltaTime = m_elapsedTimer.elapsed() * 0.001f;  // Convert to seconds
 
     // Handle particle system updates
     if (m_weatherEnabled && m_particleSystem) {
@@ -709,71 +713,64 @@ void GLRenderer::timerEvent(QTimerEvent* event) {
         updateCameraPosition();
     }
     else {
+        // Manual WASD movement
         // Calculate movement vectors
         glm::vec3 lookDir = glm::normalize(m_look - m_eye);
         glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
-        glm::vec3 moveFront = m_translSpeed * deltaTime * lookDir;
+        glm::vec3 moveFront = m_translSpeed * deltaTime * glm::vec3(lookDir.x, 0, lookDir.z); // Keep y movement separate
         glm::vec3 moveRight = m_translSpeed * deltaTime * rightDir;
         glm::vec3 moveUp = m_translSpeed * deltaTime * m_up;
 
-        // Store original positions in case we need to revert
+        // Store original positions
         glm::vec3 originalEye = m_eye;
         glm::vec3 originalLook = m_look;
 
         // Apply movements
-        for (auto& key : m_keyMap) {
-            if (key.second) {
-                glm::vec3 newEye = m_eye;
-                glm::vec3 newLook = m_look;
-
-                switch (key.first) {
+        bool moved = false;
+        for (const auto& [key, isPressed] : m_keyMap) {
+            if (isPressed) {
+                moved = true;
+                glm::vec3 movement(0.0f);
+                switch (key) {
                 case Qt::Key_W:
-                    newEye += moveFront;
-                    newLook += moveFront;
+                    movement = moveFront;
                     break;
                 case Qt::Key_S:
-                    newEye -= moveFront;
-                    newLook -= moveFront;
+                    movement = -moveFront;
                     break;
                 case Qt::Key_A:
-                    newEye -= moveRight;
-                    newLook -= moveRight;
+                    movement = -moveRight;
                     break;
                 case Qt::Key_D:
-                    newEye += moveRight;
-                    newLook += moveRight;
+                    movement = moveRight;
                     break;
                 case Qt::Key_Control:
-                    newEye -= moveUp;
-                    newLook -= moveUp;
+                    m_eye.y -= moveUp.y;
+                    m_look.y -= moveUp.y;
                     break;
                 case Qt::Key_Space:
-                    newEye += moveUp;
-                    newLook += moveUp;
-                    break;
-                default:
+                    m_eye.y += moveUp.y;
+                    m_look.y += moveUp.y;
                     break;
                 }
 
-                // // Check if new position would be within bounds
-                // float maxRadius = 45.0f;  // Slightly less than dome radius
-                // glm::vec2 newHorizontalPos(newEye.x, newEye.z);
-                // float newRadius = glm::length(newHorizontalPos);
-
-                // Only apply movement if it keeps us within bounds
-                if (newEye.y >= m_minHeight &&
-                    newEye.y <= m_maxHeight) {
-                    m_eye = newEye;
-                    m_look = newLook;
+                if (movement != glm::vec3(0.0f)) {
+                    m_eye += movement;
+                    m_look += movement;
                 }
             }
+        }
+
+        if (moved) {
+            // Apply constraints after movement
+            constrainCamera();
+            rebuildMatrices();
         }
     }
 
     m_elapsedTimer.restart();
-    rebuildMatrices();
+    update();
 }
-
 
 
 void GLRenderer::paintDome() {
@@ -970,7 +967,11 @@ void GLRenderer::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_R && !event->isAutoRepeat()) {
         m_autoRotate = !m_autoRotate;
         if (m_autoRotate) {
-            // Reset position and angle when starting auto-rotation
+            // Clear any active key states when entering auto-rotate
+            for (auto& [key, isPressed] : m_keyMap) {
+                isPressed = false;
+            }
+            // Reset position and angle
             m_rotationAngle = 0.0f;
             m_eye = glm::vec3(m_trajectoryRadius, m_trajectoryHeight, 0.0f);
             m_look = glm::vec3(0.0f, 0.0f, 0.0f);

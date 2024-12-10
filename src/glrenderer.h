@@ -96,7 +96,7 @@ private:
     float m_rotationAngle = 0.0f;        // Current angle of rotation
     const float m_rotationSpeed = 0.2f;   // Speed of rotation in radians/second
     const float m_maxHeight = 45.0f;      // Maximum camera height
-    const float m_minHeight = 5.0f;       // Minimum camera height
+    const float m_minHeight = 0.5f;       // Minimum camera height
     void updateCameraPosition();
     void constrainCamera();
 

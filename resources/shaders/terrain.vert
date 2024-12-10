@@ -7,10 +7,10 @@ out vec3 fragColor;
 out vec2 fragUV;
 out float height;
 
+
 uniform mat4 projection;
 uniform mat4 model;
 uniform mat4 view;
-
 
 
 void main() {

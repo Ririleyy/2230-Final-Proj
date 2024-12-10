@@ -166,8 +166,6 @@ std::vector<float> generateDomeData(int phiTesselations, int thetaTesselations)
     return data;
 }
 
-// ================== Students, You'll Be Working In These Files
-
 void GLRenderer::initializeGL() {
     m_timer = startTimer(1000 / 60);
     m_elapsedTimer.start();
@@ -238,6 +236,26 @@ void GLRenderer::initializeGL() {
     }
     catch (const std::exception& e) {
         fprintf(stderr, "Error during initialization: %s\n", e.what());
+    }
+}
+
+void GLRenderer::paintGL()
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Paint terrain first
+    paintTerrain();
+
+    // Paint dome
+    paintDome();
+
+    // Paint water
+    // paintWater();
+    paintWaterPlanes();
+
+    // Paint particles last for proper transparency
+    if (m_weatherEnabled && m_particleSystem) {
+        renderParticles();
     }
 }
 
@@ -463,26 +481,6 @@ void GLRenderer::bindTerrainTexture() {
     glUseProgram(0);
 
 }
-void GLRenderer::paintGL()
-{
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Paint terrain first
-    paintTerrain();
-
-    // Paint dome
-    paintDome();
-
-    // Paint water
-    // paintWater();
-    paintWaterPlanes();
-
-    // Paint particles last for proper transparency
-    if (m_weatherEnabled && m_particleSystem) {
-        renderParticles();
-    }
-}
-
 
 void GLRenderer::paintWaterPlanes() {
     glUseProgram(m_water_shader);
@@ -823,7 +821,6 @@ void GLRenderer::paintDome() {
 void GLRenderer::paintTerrain() {
 
     glUseProgram(m_terrain_shader);
-
     updateTerrainChunks();
 
     // Render all visible chunks
@@ -845,10 +842,7 @@ void GLRenderer::paintTerrain() {
         }
 
         glBindVertexArray(chunk.vao);
-
         glm::mat4 model(1.0);
-
-        model = glm::translate(glm::vec3(0.0,20.0,0.0));
         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &model[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
@@ -869,16 +863,12 @@ void GLRenderer::paintTerrain() {
         if(settings.mountain == MountainType::SNOW_MOUNTAIN){
             activeTexture = 0;
         }else if(settings.mountain==MountainType::ROCK_MOUNTAIN){
-
             activeTexture = 1;
-
         }else if(settings.mountain==MountainType::GRASS_MOUNTAIN){
             activeTexture = 2;
         }
 
         glUniform1i(glGetUniformLocation(m_terrain_shader, "activeTexture"), activeTexture);
-
-
         glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
     }
 

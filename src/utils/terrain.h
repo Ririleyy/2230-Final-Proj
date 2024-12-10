@@ -32,6 +32,8 @@ private:
     std::vector<glm::vec2> m_randVecLookup;
     int m_resolution;
     int m_lookupSize;
+    const int m_scale = 100;
+    const float m_waterLevel = 0.001f;
 
     // Samples the (infinite) random vector grid at (row, col)
     glm::vec2 sampleRandomVector(int row, int col);
@@ -44,7 +46,8 @@ private:
 
     // Takes a normalized (x, y) position, in range [0,1)
     // Returns a height value, z, by sampling a noise function
-    float getHeight(float x, float y);
+    float getHeight(float x, float y, int numOctaves = 6, float persistence = 0.6f, float lacunarity = 2.0f);
+    float mapHeight(float normalizedHeight);
 
     // Computes the normal of a vertex by averaging neighbors
     glm::vec3 getNormal(int row, int col);

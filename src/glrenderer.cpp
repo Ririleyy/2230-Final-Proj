@@ -385,7 +385,6 @@ void GLRenderer::mouseMoveEvent(QMouseEvent *event) {
 
         // Update look position and up vector
         m_look = m_eye + dir;
-        m_up = glm::normalize(glm::cross(right, dir));
 
         rebuildMatrices();
     }
@@ -575,8 +574,7 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
                 float newRadius = glm::length(newHorizontalPos);
 
                 // Only apply movement if it keeps us within bounds
-                if (newRadius <= maxRadius &&
-                    newEye.y >= m_minHeight &&
+                if (newEye.y >= m_minHeight &&
                     newEye.y <= m_maxHeight) {
                     m_eye = newEye;
                     m_look = newLook;
@@ -597,8 +595,8 @@ void GLRenderer::paintDome(){
     glBindVertexArray(m_sphere_vao);
 
     glm::mat4 domeModel = glm::mat4(1.0f);
-    domeModel = glm::translate(domeModel, m_eye); 
-    domeModel = glm::scale(domeModel, glm::vec3(50, 50, 50));
+    domeModel = glm::translate(domeModel, glm::vec3(m_eye.x, 0, m_eye.z)); 
+    domeModel = glm::scale(domeModel, glm::vec3(100, 100, 100));
 
     GLint modelLoc = glGetUniformLocation(m_skydome_shader, "model");
     GLint viewLoc = glGetUniformLocation(m_skydome_shader, "view");

@@ -57,6 +57,14 @@ MainWindow::MainWindow() : QWidget(nullptr), glRenderer(nullptr)
     connectUIElements();
     setupWeatherControls();
 
+    // Create and add mountain controls
+    createMountainControls();
+
+    // Connect all UI elements
+    connectUIElements();
+    setupWeatherControls();
+    setupMountainControls();
+
     // Initialize settings
     initSettings();
 }
@@ -72,7 +80,15 @@ void MainWindow::initSettings()
         settings.weather = WeatherType::SNOW;
     } else if (rainButton->isChecked()) {
         settings.weather = WeatherType::RAIN;
-    } 
+    }
+
+    if (snowMountainButton->isChecked()) {
+        settings.mountain = MountainType::SNOW_MOUNTAIN;
+    } else if (rockMountainButton->isChecked()) {
+        settings.mountain = MountainType::ROCK_MOUNTAIN;
+    } else {
+        settings.mountain = MountainType::GRASS_MOUNTAIN;
+    }
 }
 
 void MainWindow::createWeatherControls() {
@@ -184,6 +200,62 @@ void MainWindow::onValChangeFov(int newValue) {
     if (glRenderer) glRenderer->settingsChanged();
 }
 
+//mountain
+void MainWindow::createMountainControls() {
+    QLabel *mountain_label = new QLabel("Mountain Type:", this);
+    QFont font = mountain_label->font();
+    font.setPointSize(12);
+    font.setBold(true);
+    mountain_label->setFont(font);
+
+    QGroupBox *mountainBox = new QGroupBox(this);
+    QVBoxLayout *mountainLayout = new QVBoxLayout(mountainBox);
+
+    snowMountainButton = new QRadioButton("Snow Mountain", this);
+    rockMountainButton = new QRadioButton("Rock Mountain", this);
+    grassMountainButton = new QRadioButton("Grass Mountain", this);
+
+    snowMountainButton->setChecked(true);
+
+    mountainLayout->addWidget(snowMountainButton);
+    mountainLayout->addWidget(rockMountainButton);
+    mountainLayout->addWidget(grassMountainButton);
+
+    vLayout->addWidget(mountain_label);
+    vLayout->addWidget(mountainBox);
+}
+
+void MainWindow::setupMountainControls() {
+    if (!snowMountainButton || !rockMountainButton || !grassMountainButton || !glRenderer) return;
+
+    connect(snowMountainButton, &QRadioButton::toggled,
+            this, &MainWindow::onMountainTypeChanged,
+            Qt::ConnectionType::QueuedConnection);
+    connect(rockMountainButton, &QRadioButton::toggled,
+            this, &MainWindow::onMountainTypeChanged,
+            Qt::ConnectionType::QueuedConnection);
+    connect(grassMountainButton, &QRadioButton::toggled,
+            this, &MainWindow::onMountainTypeChanged,
+            Qt::ConnectionType::QueuedConnection);
+}
+void MainWindow::onMountainTypeChanged() {
+    if (!glRenderer) return;
+
+    if (snowMountainButton->isChecked()) {
+        settings.mountain = MountainType::SNOW_MOUNTAIN;
+    } else if (rockMountainButton->isChecked()) {
+        settings.mountain = MountainType::ROCK_MOUNTAIN;
+    } else if (grassMountainButton->isChecked()) {
+        settings.mountain = MountainType::GRASS_MOUNTAIN;
+    }
+
+    glRenderer->settingsChanged();
+}
+
+
+
 MainWindow::~MainWindow() {
     delete glRenderer;
 }
+
+

@@ -157,8 +157,10 @@ private:
     QImage m_image;
     GLuint m_textureID;
     GLuint m_textureID2;
+    GLuint m_textureID3;
     void bindTexture();
     int textureLocation;
+
 
 
     // Water rendering related

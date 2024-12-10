@@ -3,6 +3,7 @@
 in vec2 fragUV; // UV coordinates from vertex shader
 uniform sampler2D texture1; // Texture sampler
 uniform sampler2D texture2;
+uniform sampler2D texture3;
 uniform int activeTexture;
 uniform float alpha; // Alpha value for fading
 
@@ -16,15 +17,13 @@ void main() {
 
     if(activeTexture == 0){
         texColor = texture(texture1, fragUV);
-    }else{
+    }else if(activeTexture == 1) {
         texColor = texture(texture2, fragUV);
+    }else if(activeTexture == 2){
+        texColor = texture(texture3, fragUV);
     }
+
     fragColor = vec4(texColor.rgb, texColor.a * alpha);
 
-    if(activeTexture == 0){
-        texColor = texture(texture1, fragUV);
-    }else{
-        texColor = texture(texture2, fragUV);
-    }
-    fragColor = vec4(texColor.rgb, texColor.a * alpha);
+
 }

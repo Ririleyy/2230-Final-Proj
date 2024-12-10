@@ -109,9 +109,6 @@ private:
     const float m_translSpeed = 5;
 
     // terrain
-<<<<<<< Updated upstream
-=======
-
     enum class ChunkState {
         FADING_IN,
         ACTIVE,
@@ -136,7 +133,6 @@ private:
     int64_t getChunkKey(int chunkX, int chunkZ) {
         return (static_cast<int64_t>(chunkX) << 32) | static_cast<uint32_t>(chunkZ);
     }
->>>>>>> Stashed changes
     GLuint m_terrain_shader;
     GLuint m_terrainVao;
     GLuint m_terrainVbo;

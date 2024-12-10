@@ -12,10 +12,19 @@ public:
     ~TerrainGenerator();
     int getResolution() { return m_resolution; };
     std::vector<float> generateTerrain();
+    std::vector<float> generateTerrainChunk(int chunkX, int chunkZ);
+    float getWorldHeight(float worldX, float worldZ);
 
 private:
 
     // Member variables for terrain generation. You will not need to use these directly.
+
+    const float CHUNK_SIZE = 25.0f; // Size of each chunk in world units
+    const float VERTEX_SPACING = 0.5f; // Distance between vertices
+
+    glm::vec2 worldToLocal(float worldX, float worldZ);
+    glm::vec2 localToWorld(float localX, float localZ, int chunkX, int chunkZ);
+
     std::vector<glm::vec2> m_randVecLookup;
     int m_resolution;
     int m_lookupSize;
@@ -42,4 +51,3 @@ private:
     // Computes the intensity of Perlin noise at some point
     float computePerlin(float x, float y);
 };
-

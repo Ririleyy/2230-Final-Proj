@@ -280,8 +280,7 @@ float TerrainGenerator::computePerlin(float x, float y) {
 
 }
 
-<<<<<<< Updated upstream
-=======
+
 glm::vec2 TerrainGenerator::worldToLocal(float worldX, float worldZ) {
     return glm::vec2(
         fmod(worldX, CHUNK_SIZE) / CHUNK_SIZE,
@@ -353,4 +352,3 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
 }
 
 
->>>>>>> Stashed changes

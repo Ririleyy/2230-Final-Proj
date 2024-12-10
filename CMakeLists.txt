@@ -55,6 +55,7 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/images/2.jpg
   resources/images/front-view-tree-bark.jpg
 
+
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`

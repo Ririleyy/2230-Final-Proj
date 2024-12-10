@@ -9,10 +9,7 @@ uniform float alpha; // Alpha value for fading
 out vec4 fragColor;
 
 void main() {
-<<<<<<< Updated upstream
-    vec3 texColor = texture(texture1, fragUV).rgb; // Sample the texture using UV coordinates
-    fragColor = vec4(texColor, 1.0); // Output the texture color
-=======
+
     vec4 texColor; // Sample the texture using UV coordinates
     //float finalHeight = clamp(height / 100, 0.0, 1.0); // Clamp the height between 0 and 1
     //fragColor = vec4(finalHeight, finalHeight, finalHeight, 1.0); // Output the texture color
@@ -23,6 +20,6 @@ void main() {
         texColor = texture(texture2, fragUV);
     }
     fragColor = vec4(texColor.rgb, texColor.a * alpha);
->>>>>>> Stashed changes
+、
 
 }

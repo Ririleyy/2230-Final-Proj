@@ -2,30 +2,38 @@
 
 in vec2 fragUV; // UV coordinates from vertex shader
 in vec3 outColor;
-uniform sampler2D texture1; // Texture sampler
-uniform sampler2D texture2;
-uniform sampler2D texture3;
+uniform sampler2D texture1; // snow
+uniform sampler2D texture2; // rock
+uniform sampler2D texture3; // grass
+uniform sampler2D texture4; // sand
+uniform sampler2D texture5; // water
 uniform int activeTexture;
 uniform float alpha; // Alpha value for fading
 
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(outColor, 1.0);
+    vec4 texColor;
 
-    // vec4 texColor; // Sample the texture using UV coordinates
-    // //float finalHeight = clamp(height / 100, 0.0, 1.0); // Clamp the height between 0 and 1
-    // //fragColor = vec4(finalHeight, finalHeight, finalHeight, 1.0); // Output the texture color
+    // Check if outColor corresponds to grass color (0.0, 1.0, 0.0)
+    if (outColor == vec3(0.0, 0.0, 0.0)) {
+        texColor = texture(texture5, fragUV); // Use water texture
+    } else if(outColor == vec3(1.0, 0.0, 0.0)){
 
-    // if(activeTexture == 0){
-    //     texColor = texture(texture1, fragUV);
-    // }else if(activeTexture == 1) {
-    //     texColor = texture(texture2, fragUV);
-    // }else if(activeTexture == 2){
-    //     texColor = texture(texture3, fragUV);
-    // }
+        texColor = texture(texture4, fragUV); // sand texture
+    }else if(outColor == vec3(0.0, 1.0, 0.0)){
 
-    // fragColor = vec4(texColor.rgb, texColor.a * alpha);
+        texColor = texture(texture3, fragUV); // grass texture
+    }else if(outColor == vec3(0.0, 0.0, 1.0)){
+
+        texColor = texture(texture2, fragUV); // rock texture
+    }else if(outColor == vec3(1.0, 1.0, 1.0)){
+
+        texColor = texture(texture1, fragUV); // snow texture
+    }
+
+
+    fragColor = vec4(texColor.rgb, texColor.a * alpha);
 
 
 }

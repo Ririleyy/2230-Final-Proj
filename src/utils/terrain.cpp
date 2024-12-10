@@ -201,18 +201,35 @@ glm::vec3 TerrainGenerator::getColor(glm::vec3 normal, glm::vec3 position) {
     return glm::vec3(0.5f, 0.5f, 0.5f);
 }
 
+// glm::vec3 TerrainGenerator::getColor(float worldX, float worldZ){
+//     float scaledX = worldX / m_scale;
+//     float scaledZ = worldZ / m_scale;
+//     float normalizedHeight = getHeight(scaledX, scaledZ);
+//     if (normalizedHeight <= m_waterLevel) {
+//         return glm::vec3(0.01f, 0.71f, 0.98f);
+//     } else if (normalizedHeight <= m_sandLevel) {
+//         return glm::vec3(0.98f, 0.90f, 0.011f);
+//     } else if (normalizedHeight <= m_grassLevel) {
+//         return glm::vec3(0.48f, 0.90f, 0.33f);
+//     } else if (normalizedHeight <= m_rockLevel) {
+//         return glm::vec3(0.5f, 0.47f, 0.43f);
+//     } else {
+//         return glm::vec3(1.0f, 1.0f, 1.0f);
+//     }
+// }
+
 glm::vec3 TerrainGenerator::getColor(float worldX, float worldZ){
     float scaledX = worldX / m_scale;
     float scaledZ = worldZ / m_scale;
     float normalizedHeight = getHeight(scaledX, scaledZ);
     if (normalizedHeight <= m_waterLevel) {
-        return glm::vec3(0.01f, 0.71f, 0.98f);
+        return glm::vec3(0.0f, 0.0f, 0.0f);
     } else if (normalizedHeight <= m_sandLevel) {
-        return glm::vec3(0.98f, 0.90f, 0.011f);
+        return glm::vec3(1.0f, 0.0f, 0.0f);
     } else if (normalizedHeight <= m_grassLevel) {
-        return glm::vec3(0.48f, 0.90f, 0.33f);
+        return glm::vec3(0.0f, 1.0f, 0.0f);
     } else if (normalizedHeight <= m_rockLevel) {
-        return glm::vec3(0.5f, 0.47f, 0.43f);
+        return glm::vec3(0.0f, 0.0f, 1.0f);
     } else {
         return glm::vec3(1.0f, 1.0f, 1.0f);
     }

@@ -158,6 +158,8 @@ private:
     GLuint m_textureID;
     GLuint m_textureID2;
     GLuint m_textureID3;
+    GLuint m_textureID4;
+    GLuint m_textureID5;
     void bindTexture();
     int textureLocation;
 

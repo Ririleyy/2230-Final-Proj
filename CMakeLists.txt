@@ -63,6 +63,7 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/images/water_displacement_3.jpg
   resources/images/water_displacement_4.jpg
   resources/images/front-view-tree-bark.jpg
+  resources/images/top-view-corn-flour-texture.jpg
   )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`

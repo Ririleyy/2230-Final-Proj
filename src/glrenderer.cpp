@@ -478,6 +478,60 @@ void GLRenderer::bindTerrainTexture() {
     // Unbind texture
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    // Load sand texture
+    QString sand_filepath = QString(":/resources/images/top-view-corn-flour-texture.jpg");
+    if (!m_image.load(sand_filepath)) {
+        std::cerr << "Failed to load texture: " << sand_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for sand
+    glGenTextures(1, &m_textureID4);
+    glActiveTexture(GL_TEXTURE3); // Bind to texture unit 3
+    glBindTexture(GL_TEXTURE_2D, m_textureID4);
+
+    // Upload sand texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for sand texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Unbind sand texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Load water texture
+    QString water_filepath = QString(":/resources/images/water_displacement_1.jpg");
+    if (!m_image.load(water_filepath)) {
+        std::cerr << "Failed to load texture: " << water_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for water
+    glGenTextures(1, &m_textureID5);
+    glActiveTexture(GL_TEXTURE4); // Bind to texture unit 4
+    glBindTexture(GL_TEXTURE_2D, m_textureID5);
+
+    // Upload water texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for water texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Unbind water texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+
+
     glUseProgram(0);
 
 }
@@ -857,6 +911,15 @@ void GLRenderer::paintTerrain() {
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, m_textureID3);
         glUniform1i(glGetUniformLocation(m_terrain_shader, "texture3"), 2);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, m_textureID4);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture4"), 3);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, m_textureID5);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture5"), 4);
+
+
+
         // Pass alpha to shader
         glUniform1f(glGetUniformLocation(m_terrain_shader, "alpha"), chunk.alpha);
 

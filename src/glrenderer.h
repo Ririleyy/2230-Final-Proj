@@ -27,7 +27,7 @@ enum class MouseStaus
 class GLRenderer : public QOpenGLWidget
 {
 public:
-    GLRenderer(QWidget *parent = nullptr);
+    GLRenderer(QWidget* parent = nullptr);
     void settingsChanged();
     void setWeatherType(bool isSnow);
     void setWeatherEnabled(bool enabled) { m_weatherEnabled = enabled; }
@@ -40,18 +40,18 @@ protected:
     void resizeGL(int width, int height) override;
 
     // camera handling functions
-    void mousePressEvent(QMouseEvent *e) override;
-    void mouseMoveEvent(QMouseEvent *e) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
-    void wheelEvent(QWheelEvent *e) override;
-    void keyPressEvent(QKeyEvent *event) override;
-    void keyReleaseEvent(QKeyEvent *event) override;
-    void timerEvent(QTimerEvent *event) override;
+    void mousePressEvent(QMouseEvent* e) override;
+    void mouseMoveEvent(QMouseEvent* e) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
+    void wheelEvent(QWheelEvent* e) override;
+    void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
+    void timerEvent(QTimerEvent* event) override;
     void rebuildMatrices();
     void timeToSunPos(const float time);
 
 public slots:
-    void tick(QTimerEvent *event);
+    void tick(QTimerEvent* event);
 
 private:
     void initializeParticleSystem();
@@ -111,9 +111,33 @@ private:
     glm::vec3 m_up;
 
     const float m_rotSpeed = 0.005;
-    const float m_translSpeed = 5;
+    const float m_translSpeed = 25;
 
     // terrain
+    enum class ChunkState {
+        FADING_IN,
+        ACTIVE,
+        FADING_OUT,
+        REMOVING
+    };
+    struct TerrainChunk {
+        GLuint vao;
+        GLuint vbo;
+        int vertexCount;
+        glm::ivec2 position; // Chunk coordinates
+        float alpha; // Start invisible
+        ChunkState state;
+        QElapsedTimer fadeTimer;
+
+
+    };
+    std::unordered_map<int64_t, TerrainChunk> m_terrainChunks;
+    static const int RENDER_DISTANCE = 5;
+    void updateTerrainChunks();
+    void createChunk(int chunkX, int chunkZ);
+    int64_t getChunkKey(int chunkX, int chunkZ) {
+        return (static_cast<int64_t>(chunkX) << 32) | static_cast<uint32_t>(chunkZ);
+    }
     GLuint m_terrain_shader;
     GLuint m_terrainVao;
     GLuint m_terrainVbo;
@@ -122,6 +146,7 @@ private:
     void bindTerrainTexture();
     QImage m_image;
     GLuint m_textureID;
+    GLuint m_textureID2;
     void bindTexture();
     int textureLocation;
 
@@ -131,10 +156,10 @@ private:
     GLuint m_water_vbo;        // Vertex Buffer Object for water surface
     GLuint m_water_shader;     // Shader program for water
     std::vector<float> m_waterData;  // Water surface vertex data
-
     // Water displacement related
     GLuint m_water_disp_texture;  // Displacement map texture
     float m_water_time;           // For animation
     QImage m_disp_image;          // Store displacement map image
 
+    int activeTexture = 0;
 };

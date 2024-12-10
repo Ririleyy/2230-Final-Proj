@@ -9,7 +9,7 @@
 #include "utils/particle.h"
 
 
-GLRenderer::GLRenderer(QWidget *parent)
+GLRenderer::GLRenderer(QWidget* parent)
     : QOpenGLWidget(parent),
     m_angleX(6),
     m_angleY(0),
@@ -76,12 +76,12 @@ GLRenderer::~GLRenderer()
 glm::vec4 sphericalToCartesian(float phi, float theta)
 {
     return glm::vec4(glm::sin(phi) * glm::cos(theta),
-                     glm::cos(phi), // Y component should use cos(phi) directly
-                     glm::sin(phi) * glm::sin(theta),
-                     1);
+        glm::cos(phi), // Y component should use cos(phi) directly
+        glm::sin(phi) * glm::sin(theta),
+        1);
 }
 
-void pushVec3(glm::vec4 vec, std::vector<float> *data)
+void pushVec3(glm::vec4 vec, std::vector<float>* data)
 {
     data->push_back(vec.x);
     data->push_back(vec.y);
@@ -186,12 +186,12 @@ void GLRenderer::initializeGL()
         // Initialize dome
         glGenBuffers(1, &m_sphere_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
-        m_sphereData = generateDomeData(50, 50);
+        m_sphereData = generateDomeData(25, 25);
         glBufferData(GL_ARRAY_BUFFER, m_sphereData.size() * sizeof(GLfloat), m_sphereData.data(), GL_STATIC_DRAW);
         glGenVertexArrays(1, &m_sphere_vao);
         glBindVertexArray(m_sphere_vao);
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void*>(0));
 
         // Initialize terrain
         bindTerrainVaoVbo();
@@ -205,7 +205,8 @@ void GLRenderer::initializeGL()
 
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         fprintf(stderr, "Error during initialization: %s\n", e.what());
     }
 }
@@ -319,7 +320,7 @@ void GLRenderer::setWeatherType(bool isSnow) {
     doneCurrent();
 }
 
-void GLRenderer::bindTerrainVaoVbo(){
+void GLRenderer::bindTerrainVaoVbo() {
 
     glUseProgram(m_terrain_shader);
 
@@ -329,16 +330,7 @@ void GLRenderer::bindTerrainVaoVbo(){
 
     // Generate terrain data
     m_terrainData = m_terrain.generateTerrain();
-    // std::cout << "m_terrainData size: " << m_terrainData.size() << std::endl;
-    // for (size_t i = 0; i < m_terrainData.size(); ++i) {
-    //     std::cout << std::fixed << std::setprecision(6) << m_terrainData[i] << " ";
 
-    //     // Add formatting for readability (e.g., print new line after every 11 floats)
-    //     if ((i + 1) % 11 == 0) {
-    //         std::cout << std::endl; // New line after one vertex's data (if 11 floats per vertex)
-    //     }
-    // }
-    // std::cout << std::endl;
 
     // Generate and bind VBO
     glGenBuffers(1, &m_terrainVbo);
@@ -347,31 +339,33 @@ void GLRenderer::bindTerrainVaoVbo(){
 
     // Configure vertex attributes
     glEnableVertexAttribArray(0); // Vertex position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(0));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void*>(0));
 
     glEnableVertexAttribArray(1); // Vertex normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
 
     glEnableVertexAttribArray(2); // Vertex color
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void *>(6 * sizeof(GLfloat)));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), reinterpret_cast<void*>(6 * sizeof(GLfloat)));
 
     glEnableVertexAttribArray(3); // uv
 
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat),
-                          reinterpret_cast<void *>(9 * sizeof(GLfloat)));
+        reinterpret_cast<void*>(9 * sizeof(GLfloat)));
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glUseProgram(0);
 
 }
-void GLRenderer::bindTerrainTexture(){
+void GLRenderer::bindTerrainTexture() {
 
     glUseProgram(m_terrain_shader);
 
-    QString kitten_filepath = QString(":/resources/images/2.jpg");
-    if (!m_image.load(kitten_filepath)) {
-        std::cerr << "Failed to load texture: " << kitten_filepath.toStdString() << std::endl;
+    QString snow_filepath = QString(":/resources/images/indian-travel-destination-beautiful-attractive.jpg");
+    //QString kitten_filepath = QString(":/resources/images/front-view-tree-bark.jpg");
+
+    if (!m_image.load(snow_filepath)) {
+        std::cerr << "Failed to load texture: " << snow_filepath.toStdString() << std::endl;
         return;
     }
 
@@ -397,10 +391,28 @@ void GLRenderer::bindTerrainTexture(){
 
     glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture
 
+    // Load the second texture
+    QString rock_filepath = QString(":/resources/images/front-view-tree-bark.jpg");
+    if (!m_image.load(rock_filepath)) {
+        std::cerr << "Failed to load texture: " << rock_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    glGenTextures(1, &m_textureID2);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, m_textureID2);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     glUseProgram(0);
 
 }
-
 void GLRenderer::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -481,7 +493,7 @@ void GLRenderer::renderParticles() {
     glDisable(GL_PROGRAM_POINT_SIZE);
 }
 
-void GLRenderer::mouseMoveEvent(QMouseEvent *event) {
+void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
     if (m_mouseDown == MouseStaus::LEFT) {
         int posX = event->position().x();
         int posY = event->position().y();
@@ -501,7 +513,6 @@ void GLRenderer::mouseMoveEvent(QMouseEvent *event) {
 
         // Update look position and up vector
         m_look = m_eye + dir;
-        m_up = glm::normalize(glm::cross(right, dir));
 
         rebuildMatrices();
     }
@@ -549,7 +560,8 @@ void GLRenderer::constrainCamera() {
         // Adjust look point while maintaining direction
         glm::vec3 dir = glm::normalize(m_look - m_eye);
         m_look = m_eye + dir * glm::length(m_look - m_eye);
-    } else if (m_eye.y < m_minHeight) {
+    }
+    else if (m_eye.y < m_minHeight) {
         float adjustment = m_minHeight - m_eye.y;
         m_eye.y = m_minHeight;
 
@@ -575,27 +587,56 @@ void GLRenderer::constrainCamera() {
     }
 }
 
+// void GLRenderer::updateCameraPosition() {
+//     if (!m_autoRotate) return;
+
+//     float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
+//     m_elapsedTimer.restart();
+
+//     // Update rotation angle
+//     m_rotationAngle += m_rotationSpeed * deltaTime;
+
+//     // Calculate new camera position on circular path
+//     m_eye.x = m_trajectoryRadius * cos(m_rotationAngle);
+//     m_eye.z = m_trajectoryRadius * sin(m_rotationAngle);
+//     m_eye.y = m_trajectoryHeight;
+
+//     // Always look at center of terrain
+//     m_look = glm::vec3(0.0f, 0.0f, 0.0f);
+//     m_up = glm::vec3(0.0f, 1.0f, 0.0f);
+// }
+
 void GLRenderer::updateCameraPosition() {
     if (!m_autoRotate) return;
 
+    // Get elapsed time and restart the timer
     float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
     m_elapsedTimer.restart();
 
-    // Update rotation angle
-    m_rotationAngle += m_rotationSpeed * deltaTime;
+    // Clamp deltaTime to avoid large jumps
+    deltaTime = glm::clamp(deltaTime, 0.0f, 0.05f); // Max 50ms per frame
 
-    // Calculate new camera position on circular path
-    m_eye.x = m_trajectoryRadius * cos(m_rotationAngle);
-    m_eye.z = m_trajectoryRadius * sin(m_rotationAngle);
-    m_eye.y = m_trajectoryHeight;
+    // Update rotation angle using easing (optional)
+    float easedDeltaTime = deltaTime * glm::smoothstep(0.0f, 1.0f, deltaTime);
+    m_rotationAngle += m_rotationSpeed * easedDeltaTime;
 
-    // Always look at center of terrain
+    // Calculate target position on circular path
+    glm::vec3 targetPosition;
+    targetPosition.x = m_trajectoryRadius * cos(m_rotationAngle);
+    targetPosition.z = m_trajectoryRadius * sin(m_rotationAngle);
+    targetPosition.y = m_trajectoryHeight;
+
+    // Interpolate camera position for smooth transition
+    float smoothingFactor = 0.1f; // Adjust for more/less smoothness
+    m_eye = glm::mix(m_eye, targetPosition, smoothingFactor);
+
+    // Always look at the center of the terrain
     m_look = glm::vec3(0.0f, 0.0f, 0.0f);
     m_up = glm::vec3(0.0f, 1.0f, 0.0f);
 }
 
 
-void GLRenderer::timerEvent(QTimerEvent *event) {
+void GLRenderer::timerEvent(QTimerEvent* event) {
     float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
 
     // Handle particle system updates
@@ -609,7 +650,8 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
 
     if (m_autoRotate) {
         updateCameraPosition();
-    } else {
+    }
+    else {
         // Calculate movement vectors
         glm::vec3 lookDir = glm::normalize(m_look - m_eye);
         glm::vec3 rightDir = glm::normalize(glm::cross(lookDir, m_up));
@@ -622,7 +664,7 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
         glm::vec3 originalLook = m_look;
 
         // Apply movements
-        for (auto &key : m_keyMap) {
+        for (auto& key : m_keyMap) {
             if (key.second) {
                 glm::vec3 newEye = m_eye;
                 glm::vec3 newLook = m_look;
@@ -656,14 +698,13 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
                     break;
                 }
 
-                // Check if new position would be within bounds
-                float maxRadius = 45.0f;  // Slightly less than dome radius
-                glm::vec2 newHorizontalPos(newEye.x, newEye.z);
-                float newRadius = glm::length(newHorizontalPos);
+                // // Check if new position would be within bounds
+                // float maxRadius = 45.0f;  // Slightly less than dome radius
+                // glm::vec2 newHorizontalPos(newEye.x, newEye.z);
+                // float newRadius = glm::length(newHorizontalPos);
 
                 // Only apply movement if it keeps us within bounds
-                if (newRadius <= maxRadius &&
-                    newEye.y >= m_minHeight &&
+                if (newEye.y >= m_minHeight &&
                     newEye.y <= m_maxHeight) {
                     m_eye = newEye;
                     m_look = newLook;
@@ -678,14 +719,14 @@ void GLRenderer::timerEvent(QTimerEvent *event) {
 
 
 
-void GLRenderer::paintDome(){
+void GLRenderer::paintDome() {
 
     glUseProgram(m_skydome_shader);
     glBindVertexArray(m_sphere_vao);
 
     glm::mat4 domeModel = glm::mat4(1.0f);
-    domeModel = glm::translate(domeModel, m_eye); 
-    domeModel = glm::scale(domeModel, glm::vec3(50, 50, 50));
+    domeModel = glm::translate(domeModel, glm::vec3(m_eye.x, 0, m_eye.z)); 
+    domeModel = glm::scale(domeModel, glm::vec3(200, 200, 200));
 
     GLint modelLoc = glGetUniformLocation(m_skydome_shader, "model");
     GLint viewLoc = glGetUniformLocation(m_skydome_shader, "view");
@@ -712,38 +753,59 @@ void GLRenderer::paintDome(){
 
 }
 
-void GLRenderer::paintTerrain(){
+
+void GLRenderer::paintTerrain() {
+
     glUseProgram(m_terrain_shader);
 
-    glBindVertexArray(m_terrainVao);
+    updateTerrainChunks();
 
-    // Set up the model, view, and projection matrices
-    glm::mat4 terrainModel = glm::mat4(1.0f);
-    terrainModel = glm::translate(terrainModel, glm::vec3(0.0f, -0.5f, 0.0f)); // Adjust terrain position
+    // Render all visible chunks
+    for (auto& [key, chunk] : m_terrainChunks) {
+        if (chunk.state == ChunkState::FADING_IN) {
+            float fadeDuration = 2000.0f; // 2 seconds fade-in duration
+            chunk.alpha = std::min(chunk.fadeTimer.elapsed() / fadeDuration, 1.0f);
 
-    terrainModel = glm::rotate(terrainModel, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            if (chunk.alpha >= 1.0f) {
+                chunk.state = ChunkState::ACTIVE; // Fully visible
+            }
+        }else if (chunk.state == ChunkState::FADING_OUT) {
+            float fadeDuration = 2000.0f; // 2 seconds fade-out duration
+            chunk.alpha = std::max(1.0f - (chunk.fadeTimer.elapsed() / fadeDuration), 0.0f);
 
-    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &terrainModel[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
-    glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
+            if (chunk.alpha <= 0.0f) {
+                continue; // Skip rendering fully transparent chunks
+            }
+        }
+
+        glBindVertexArray(chunk.vao);
+
+        glm::mat4 model(1.0);
+
+        model = glm::translate(glm::vec3(0.0,20.0,0.0));
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &model[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
+        glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
+
+        // Bind texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, m_textureID);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture1"), 0);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, m_textureID2);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture2"), 1);
+
+        // Pass alpha to shader
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "alpha"), chunk.alpha);
 
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, m_textureID);
-    textureLocation = glGetUniformLocation(m_terrain_shader, "texture1");
-    glUniform1i(textureLocation, 0);
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "activeTexture"), activeTexture);
 
-
-
-    int res = m_terrain.getResolution();
-    glBindVertexArray(m_terrainVao);  // Bind VAO
-    //glDrawArrays(GL_TRIANGLES, 0,  m_terrainData.size() / 11);  // Use correct vertex count
-    glDrawArrays(GL_TRIANGLES, 0,  res*res*6);
-    glBindVertexArray(0);
+        glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
+    }
 
     glBindVertexArray(0);
     glUseProgram(0);
-
 }
 
 void GLRenderer::settingsChanged() {
@@ -752,7 +814,7 @@ void GLRenderer::settingsChanged() {
     // Check if this is a weather type change
     if (m_particleSystem != nullptr &&
         ((settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN) != m_weatherEnabled ||
-         (settings.weather == WeatherType::SNOW) != m_isSnow)) {
+            (settings.weather == WeatherType::SNOW) != m_isSnow)) {
 
         m_weatherEnabled = (settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN);
         m_isSnow = settings.weather == WeatherType::SNOW;
@@ -793,7 +855,7 @@ void GLRenderer::resizeGL(int w, int h)
     m_proj = glm::perspective(glm::radians(m_fov), 1.0f * w / h, 0.01f, 1000.0f);
 }
 
-void GLRenderer::mousePressEvent(QMouseEvent *event)
+void GLRenderer::mousePressEvent(QMouseEvent* event)
 {
     // Set initial mouse position
     if (event->buttons().testFlag(Qt::LeftButton))
@@ -817,7 +879,7 @@ void GLRenderer::mousePressEvent(QMouseEvent *event)
 // }
 
 
-void GLRenderer::mouseReleaseEvent(QMouseEvent *event)
+void GLRenderer::mouseReleaseEvent(QMouseEvent* event)
 {
     if (!event->buttons().testFlag(Qt::LeftButton))
     {
@@ -825,14 +887,14 @@ void GLRenderer::mouseReleaseEvent(QMouseEvent *event)
     }
 }
 
-void GLRenderer::wheelEvent(QWheelEvent *event)
+void GLRenderer::wheelEvent(QWheelEvent* event)
 {
     // Update zoom based on event parameter
     m_zoom -= event->angleDelta().y() / 100.f;
     rebuildMatrices();
 }
 
-void GLRenderer::keyPressEvent(QKeyEvent *event) {
+void GLRenderer::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_R && !event->isAutoRepeat()) {
         m_autoRotate = !m_autoRotate;
         if (m_autoRotate) {
@@ -846,7 +908,7 @@ void GLRenderer::keyPressEvent(QKeyEvent *event) {
     m_keyMap[Qt::Key(event->key())] = true;
 }
 
-void GLRenderer::keyReleaseEvent(QKeyEvent *event)
+void GLRenderer::keyReleaseEvent(QKeyEvent* event)
 {
     m_keyMap[Qt::Key(event->key())] = false;
 }
@@ -858,3 +920,89 @@ void GLRenderer::rebuildMatrices()
     m_proj = glm::perspective(glm::radians(m_fov), 1.0f * width() / height(), 0.01f, 1000.0f);
     update();
 }
+
+void GLRenderer::updateTerrainChunks() {
+    // Calculate current chunk position based on camera position
+    int currentChunkX = static_cast<int>(m_eye.x / 30.0f);
+    int currentChunkZ = static_cast<int>(m_eye.z / 20.0f);
+
+    // Mark chunks for fading out if they are out of range
+    for (auto& [key, chunk] : m_terrainChunks) {
+        int chunkX = chunk.position.x;
+        int chunkZ = chunk.position.y;
+
+        if (chunk.state != ChunkState::FADING_OUT &&
+            (abs(chunkX - currentChunkX) > RENDER_DISTANCE ||
+             abs(chunkZ - currentChunkZ) > RENDER_DISTANCE)) {
+            chunk.state = ChunkState::FADING_OUT;
+            chunk.fadeTimer.start(); // Start fade-out timer
+        }
+    }
+
+    // Create new chunks that are in range
+    for (int radius = 0; radius <= RENDER_DISTANCE; radius++) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                // Skip outer layers until dx or dz equals radius
+                if (std::abs(dx) != radius && std::abs(dz) != radius) continue;
+
+                int chunkX = currentChunkX + dx;
+                int chunkZ = currentChunkZ + dz;
+                int64_t key = getChunkKey(chunkX, chunkZ);
+
+                if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
+                    createChunk(chunkX, chunkZ);
+                }
+            }
+        }
+    }
+
+    // Remove chunks that have finished fading out
+    for (auto it = m_terrainChunks.begin(); it != m_terrainChunks.end();) {
+        if (it->second.state == ChunkState::FADING_OUT &&
+            it->second.fadeTimer.elapsed() > 2000) { // 2 seconds fade-out duration
+            glDeleteBuffers(1, &it->second.vbo);
+            glDeleteVertexArrays(1, &it->second.vao);
+            it = m_terrainChunks.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+void GLRenderer::createChunk(int chunkX, int chunkZ) {
+    TerrainChunk chunk;
+    chunk.position = glm::ivec2(chunkX, chunkZ);
+
+    chunk.alpha = 0.0f;
+    chunk.fadeTimer.start();
+    chunk.state = ChunkState::FADING_IN;
+
+
+    // Generate terrain data for this chunk
+    std::vector<float> terrainData = m_terrain.generateTerrainChunk(chunkX, chunkZ);
+    chunk.vertexCount = terrainData.size() / 11; // 11 floats per vertex
+
+    // Create and set up VAO/VBO
+    glGenVertexArrays(1, &chunk.vao);
+    glGenBuffers(1, &chunk.vbo);
+
+    glBindVertexArray(chunk.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
+    glBufferData(GL_ARRAY_BUFFER, terrainData.size() * sizeof(float), terrainData.data(), GL_STATIC_DRAW);
+
+    // Set up vertex attributes (same as before)
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), 0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(6 * sizeof(float)));
+
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(float), (void*)(9 * sizeof(float)));
+
+    m_terrainChunks[getChunkKey(chunkX, chunkZ)] = chunk;
+}
+

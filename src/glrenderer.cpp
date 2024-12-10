@@ -61,6 +61,13 @@ GLRenderer::~GLRenderer()
         glDeleteTextures(1, &m_water_disp_texture);
     }
 
+    // Clean up water planes
+    for (auto& [key, plane] : m_waterPlanes) {
+        glDeleteBuffers(1, &plane.vbo);
+        glDeleteVertexArrays(1, &plane.vao);
+    }
+    m_waterPlanes.clear();
+
     // Delete particle resources
     if (m_particle_vbo) glDeleteBuffers(1, &m_particle_vbo);
     if (m_particle_vao) glDeleteVertexArrays(1, &m_particle_vao);
@@ -161,8 +168,7 @@ std::vector<float> generateDomeData(int phiTesselations, int thetaTesselations)
 
 // ================== Students, You'll Be Working In These Files
 
-void GLRenderer::initializeGL()
-{
+void GLRenderer::initializeGL() {
     m_timer = startTimer(1000 / 60);
     m_elapsedTimer.start();
 
@@ -182,6 +188,7 @@ void GLRenderer::initializeGL()
         m_skydome_shader = ShaderLoader::createShaderProgram(":/resources/shaders/skydome.vert", ":/resources/shaders/skydome.frag");
         m_terrain_shader = ShaderLoader::createShaderProgram(":/resources/shaders/terrain.vert", ":/resources/shaders/terrain.frag");
         m_particle_shader = ShaderLoader::createShaderProgram(":/resources/shaders/particle.vert", ":/resources/shaders/particle.frag");
+        m_water_shader = ShaderLoader::createShaderProgram(":/resources/shaders/water.vert", ":/resources/shaders/water.frag");
 
         // Initialize dome
         glGenBuffers(1, &m_sphere_vbo);
@@ -197,8 +204,31 @@ void GLRenderer::initializeGL()
         bindTerrainVaoVbo();
         bindTerrainTexture();
 
-        // Initialize water surface
-        initializeWater();
+        // Initialize water displacement texture
+        QString disp_filepath = QString(":/resources/images/water_displacement_2.jpg");
+        if (!m_disp_image.load(disp_filepath)) {
+            std::cerr << "Failed to load water displacement texture" << std::endl;
+            return;
+        }
+
+        m_disp_image = m_disp_image.convertToFormat(QImage::Format_RGBA8888);
+
+        glGenTextures(1, &m_water_disp_texture);
+        glBindTexture(GL_TEXTURE_2D, m_water_disp_texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                     m_disp_image.width(), m_disp_image.height(), 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, m_disp_image.bits());
+
+        // Set texture parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        // Initialize water animation time
+        m_waterAnimTime = 0.0f;
 
         // Initialize particle system
         initializeParticleSystem();
@@ -210,7 +240,6 @@ void GLRenderer::initializeGL()
         fprintf(stderr, "Error during initialization: %s\n", e.what());
     }
 }
-
 
 void GLRenderer::initializeParticleSystem() {
     m_particleSystem = std::make_unique<ParticleSystem>(10000);
@@ -235,80 +264,76 @@ void GLRenderer::initializeParticleSystem() {
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, life));
 }
 
-void GLRenderer::initializeWater() {
-    // Create a simple quad for water surface
-    m_waterData = {
-        // positions         // texture coords
-        -1.0f, 0.0f, -1.0f,  0.0f, 0.0f,   // left-back
-        1.0f, 0.0f, -1.0f,  1.0f, 0.0f,   // right-back
-        1.0f, 0.0f,  1.0f,  1.0f, 1.0f,   // right-front
+// Generate water plane vertices for a specific chunk position
+std::vector<float> GLRenderer::generateWaterPlaneData(const glm::vec2& position) {
+    std::vector<float> data;
+    float chunkSize = 25.0f; // Should match CHUNK_SIZE from terrain
+    const int resolution = 20; // Water plane resolution (can be adjusted)
+    float step = chunkSize / resolution;
 
-        -1.0f, 0.0f, -1.0f,  0.0f, 0.0f,   // left-back
-        1.0f, 0.0f,  1.0f,  1.0f, 1.0f,   // right-front
-        -1.0f, 0.0f,  1.0f,  0.0f, 1.0f    // left-front
-    };
+    // Generate a grid of vertices
+    for (int z = 0; z < resolution; z++) {
+        for (int x = 0; x < resolution; x++) {
+            // Calculate vertex positions
+            float x1 = x * step;
+            float x2 = (x + 1) * step;
+            float z1 = z * step;
+            float z2 = (z + 1) * step;
 
-    // Generate and bind VAO
-    glGenVertexArrays(1, &m_water_vao);
-    glBindVertexArray(m_water_vao);
+            // Calculate UV coordinates
+            float u1 = static_cast<float>(x) / resolution;
+            float u2 = static_cast<float>(x + 1) / resolution;
+            float v1 = static_cast<float>(z) / resolution;
+            float v2 = static_cast<float>(z + 1) / resolution;
 
-    // Generate and bind VBO
-    glGenBuffers(1, &m_water_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, m_water_vbo);
-    glBufferData(GL_ARRAY_BUFFER, m_waterData.size() * sizeof(float), m_waterData.data(), GL_STATIC_DRAW);
+            // First triangle
+            // Vertex 1
+            data.push_back(position.x + x1);       // x
+            data.push_back(m_waterLevel);          // y
+            data.push_back(position.y + z1);       // z
+            data.push_back(u1);                    // u
+            data.push_back(v1);                    // v
 
-    // Set vertex attributes
-    // Position attribute
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    // Texture coordinate attribute
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+            // Vertex 2
+            data.push_back(position.x + x2);
+            data.push_back(m_waterLevel);
+            data.push_back(position.y + z1);
+            data.push_back(u2);
+            data.push_back(v1);
 
-    // Load shader program
-    m_water_shader = ShaderLoader::createShaderProgram(":/resources/shaders/water.vert", ":/resources/shaders/water.frag");
+            // Vertex 3
+            data.push_back(position.x + x2);
+            data.push_back(m_waterLevel);
+            data.push_back(position.y + z2);
+            data.push_back(u2);
+            data.push_back(v2);
 
-    // Unbind VAO and VBO
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+            // Second triangle
+            // Vertex 1
+            data.push_back(position.x + x1);
+            data.push_back(m_waterLevel);
+            data.push_back(position.y + z1);
+            data.push_back(u1);
+            data.push_back(v1);
 
+            // Vertex 2
+            data.push_back(position.x + x2);
+            data.push_back(m_waterLevel);
+            data.push_back(position.y + z2);
+            data.push_back(u2);
+            data.push_back(v2);
 
-    // Initialize time
-    m_water_time = 0.0f;
-
-    // Load displacement texture
-    // QString disp_filepath = QString(":/resources/images/water_displacement.jpg");
-    // if (!m_disp_image.load(disp_filepath)) {
-    //     std::cerr << "Failed to load displacement texture: " << disp_filepath.toStdString() << std::endl;
-    //     return;
-    // }
-
-    QString disp_filepath = QString(":/resources/images/water_displacement_2.jpg");
-    if (!m_disp_image.load(disp_filepath)) {
-        std::cerr << "Failed to load displacement texture: " << disp_filepath.toStdString() << std::endl;
-        return;
+            // Vertex 3
+            data.push_back(position.x + x1);
+            data.push_back(m_waterLevel);
+            data.push_back(position.y + z2);
+            data.push_back(u1);
+            data.push_back(v2);
+        }
     }
-    std::cout << "Displacement texture loaded successfully. Size: "
-              << m_disp_image.width() << "x" << m_disp_image.height() << std::endl;
 
-    m_disp_image = m_disp_image.convertToFormat(QImage::Format_RGBA8888);
-
-    // Generate and bind displacement texture
-    glGenTextures(1, &m_water_disp_texture);
-    glBindTexture(GL_TEXTURE_2D, m_water_disp_texture);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_disp_image.width(), m_disp_image.height(),
-                 0, GL_RGBA, GL_UNSIGNED_BYTE, m_disp_image.bits());
-
-    // Set texture parameters for proper tiling
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
+    return data;
 }
-
 
 void GLRenderer::setWeatherType(bool isSnow) {
     if (!m_particleSystem) return;  // Guard against null pointer
@@ -424,7 +449,8 @@ void GLRenderer::paintGL()
     paintDome();
 
     // Paint water
-    paintWater();
+    // paintWater();
+    paintWaterPlanes();
 
     // Paint particles last for proper transparency
     if (m_weatherEnabled && m_particleSystem) {
@@ -432,44 +458,59 @@ void GLRenderer::paintGL()
     }
 }
 
-void GLRenderer::paintWater() {
+
+void GLRenderer::paintWaterPlanes() {
     glUseProgram(m_water_shader);
 
     // Enable blending for transparency
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Update and set time uniform with increased speed
-    m_water_time += 0.01f;  // Doubled animation speed
-    glUniform1f(glGetUniformLocation(m_water_shader, "time"), m_water_time);
-
-    // Increase displacement strength for more obvious effect
+    // Update animation time
+    m_waterAnimTime += 0.01f;
+    glUniform1f(glGetUniformLocation(m_water_shader, "time"), m_waterAnimTime);
     glUniform1f(glGetUniformLocation(m_water_shader, "dispStrength"), 0.5f);
 
-    // Set up model matrix
-    glm::mat4 waterModel = glm::mat4(1.0f);
-    waterModel = glm::translate(waterModel, glm::vec3(0.0f, -0.4f, 0.0f));
-    waterModel = glm::scale(waterModel, glm::vec3(20.0f, 1.0f, 20.0f));
-
     // Set transformation matrices
-    glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "model"), 1, GL_FALSE, &waterModel[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
 
-    // Correct texture binding
+    // Bind displacement texture
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_water_disp_texture);
     glUniform1i(glGetUniformLocation(m_water_shader, "dispTexture"), 0);
 
-    // Render water surface
-    glBindVertexArray(m_water_vao);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    // Render all water planes
+    for (const auto& [key, plane] : m_waterPlanes) {
+        if (plane.state == ChunkState::FADING_OUT && plane.fadeTimer.elapsed() > 2000) {
+            continue;
+        }
 
-    // Cleanup
+        float alpha = plane.state == ChunkState::FADING_IN ?
+                          std::min(plane.fadeTimer.elapsed() / 2000.0f, 1.0f) :
+                          std::max(1.0f - plane.fadeTimer.elapsed() / 2000.0f, 0.0f);
+
+
+
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(
+                                          plane.position.x * TerrainGenerator::CHUNK_SIZE,
+                                          m_waterLevel + 20.0f,
+                                          plane.position.y * TerrainGenerator::CHUNK_SIZE
+                                          ));
+
+        glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "model"), 1, GL_FALSE, &model[0][0]);
+        glUniform1f(glGetUniformLocation(m_water_shader, "alpha"), alpha);
+
+        glBindVertexArray(plane.vao);
+        glDrawArrays(GL_TRIANGLES, 0, plane.vertexCount);
+    }
+
     glDisable(GL_BLEND);
     glBindVertexArray(0);
     glUseProgram(0);
 }
+
 
 void GLRenderer::renderParticles() {
     glUseProgram(m_particle_shader);
@@ -923,8 +964,8 @@ void GLRenderer::rebuildMatrices()
 
 void GLRenderer::updateTerrainChunks() {
     // Calculate current chunk position based on camera position
-    int currentChunkX = static_cast<int>(m_eye.x / 30.0f);
-    int currentChunkZ = static_cast<int>(m_eye.z / 20.0f);
+    int currentChunkX = static_cast<int>(m_eye.x / TerrainGenerator::CHUNK_SIZE);
+    int currentChunkZ = static_cast<int>(m_eye.z / TerrainGenerator::CHUNK_SIZE);
 
     // Mark chunks for fading out if they are out of range
     for (auto& [key, chunk] : m_terrainChunks) {
@@ -935,32 +976,27 @@ void GLRenderer::updateTerrainChunks() {
             (abs(chunkX - currentChunkX) > RENDER_DISTANCE ||
              abs(chunkZ - currentChunkZ) > RENDER_DISTANCE)) {
             chunk.state = ChunkState::FADING_OUT;
-            chunk.fadeTimer.start(); // Start fade-out timer
+            chunk.fadeTimer.restart();
         }
     }
 
-    // Create new chunks that are in range
-    for (int radius = 0; radius <= RENDER_DISTANCE; radius++) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                // Skip outer layers until dx or dz equals radius
-                if (std::abs(dx) != radius && std::abs(dz) != radius) continue;
+    // Create new terrain chunks that are in range
+    for (int x = -RENDER_DISTANCE; x <= RENDER_DISTANCE; x++) {
+        for (int z = -RENDER_DISTANCE; z <= RENDER_DISTANCE; z++) {
+            int chunkX = currentChunkX + x;
+            int chunkZ = currentChunkZ + z;
+            int64_t key = getChunkKey(chunkX, chunkZ);
 
-                int chunkX = currentChunkX + dx;
-                int chunkZ = currentChunkZ + dz;
-                int64_t key = getChunkKey(chunkX, chunkZ);
-
-                if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
-                    createChunk(chunkX, chunkZ);
-                }
+            if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
+                createChunk(chunkX, chunkZ);
             }
         }
     }
 
-    // Remove chunks that have finished fading out
+    // Remove far chunks
     for (auto it = m_terrainChunks.begin(); it != m_terrainChunks.end();) {
         if (it->second.state == ChunkState::FADING_OUT &&
-            it->second.fadeTimer.elapsed() > 2000) { // 2 seconds fade-out duration
+            it->second.fadeTimer.elapsed() > 2000) {
             glDeleteBuffers(1, &it->second.vbo);
             glDeleteVertexArrays(1, &it->second.vao);
             it = m_terrainChunks.erase(it);
@@ -968,21 +1004,72 @@ void GLRenderer::updateTerrainChunks() {
             ++it;
         }
     }
+
+    // Update terrain fade states
+    for (auto& [key, chunk] : m_terrainChunks) {
+        if (chunk.state == ChunkState::FADING_IN) {
+            float fadeDuration = 2000.0f;
+            chunk.alpha = std::min(chunk.fadeTimer.elapsed() / fadeDuration, 1.0f);
+
+            if (chunk.alpha >= 1.0f) {
+                chunk.state = ChunkState::ACTIVE;
+            }
+        }
+    }
+
+    // Update water planes only after terrain is stable
+    // Mark water planes for removal if they're too far
+    for (auto& [key, plane] : m_waterPlanes) {
+        int chunkX = plane.position.x;
+        int chunkZ = plane.position.y;
+
+        if (plane.state != ChunkState::FADING_OUT &&
+            (abs(chunkX - currentChunkX) > WATER_RENDER_DISTANCE ||
+             abs(chunkZ - currentChunkZ) > WATER_RENDER_DISTANCE)) {
+            plane.state = ChunkState::FADING_OUT;
+            plane.fadeTimer.restart();
+        }
+    }
+
+    // Create new water planes
+    for (int x = -WATER_RENDER_DISTANCE; x <= WATER_RENDER_DISTANCE; x++) {
+        for (int z = -WATER_RENDER_DISTANCE; z <= WATER_RENDER_DISTANCE; z++) {
+            int chunkX = currentChunkX + x;
+            int chunkZ = currentChunkZ + z;
+
+            int64_t terrainKey = getChunkKey(chunkX, chunkZ);
+            // Only create water if terrain is fully visible
+            if (m_terrainChunks.find(terrainKey) != m_terrainChunks.end() &&
+                m_terrainChunks[terrainKey].state == ChunkState::ACTIVE) {
+                createWaterPlane(chunkX, chunkZ);
+            }
+        }
+    }
+
+    // Remove far water planes
+    for (auto it = m_waterPlanes.begin(); it != m_waterPlanes.end();) {
+        if (it->second.state == ChunkState::FADING_OUT &&
+            it->second.fadeTimer.elapsed() > 2000) {
+            glDeleteBuffers(1, &it->second.vbo);
+            glDeleteVertexArrays(1, &it->second.vao);
+            it = m_waterPlanes.erase(it);
+        } else {
+            ++it;
+        }
+    }
 }
+
 void GLRenderer::createChunk(int chunkX, int chunkZ) {
     TerrainChunk chunk;
     chunk.position = glm::ivec2(chunkX, chunkZ);
-
     chunk.alpha = 0.0f;
     chunk.fadeTimer.start();
     chunk.state = ChunkState::FADING_IN;
 
-
     // Generate terrain data for this chunk
     std::vector<float> terrainData = m_terrain.generateTerrainChunk(chunkX, chunkZ);
-    chunk.vertexCount = terrainData.size() / 11; // 11 floats per vertex
+    chunk.vertexCount = terrainData.size() / 11;
 
-    // Create and set up VAO/VBO
     glGenVertexArrays(1, &chunk.vao);
     glGenBuffers(1, &chunk.vbo);
 
@@ -990,7 +1077,6 @@ void GLRenderer::createChunk(int chunkX, int chunkZ) {
     glBindBuffer(GL_ARRAY_BUFFER, chunk.vbo);
     glBufferData(GL_ARRAY_BUFFER, terrainData.size() * sizeof(float), terrainData.data(), GL_STATIC_DRAW);
 
-    // Set up vertex attributes (same as before)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(float), 0);
 
@@ -1006,3 +1092,61 @@ void GLRenderer::createChunk(int chunkX, int chunkZ) {
     m_terrainChunks[getChunkKey(chunkX, chunkZ)] = chunk;
 }
 
+void GLRenderer::createWaterPlane(int chunkX, int chunkZ) {
+    int64_t key = getChunkKey(chunkX, chunkZ);
+    if (m_waterPlanes.find(key) != m_waterPlanes.end()) {
+        return;
+    }
+
+    glm::vec2 chunkWorldPos = glm::vec2(
+        chunkX * TerrainGenerator::CHUNK_SIZE,
+        chunkZ * TerrainGenerator::CHUNK_SIZE
+        );
+
+    // Check if terrain is low enough for water
+    int checkPoints = 0;
+    int belowWaterPoints = 0;
+    float checkStep = TerrainGenerator::CHUNK_SIZE / 4.0f;
+
+    for (float x = 0; x <= TerrainGenerator::CHUNK_SIZE; x += checkStep) {
+        for (float z = 0; z <= TerrainGenerator::CHUNK_SIZE; z += checkStep) {
+            float worldX = chunkWorldPos.x + x;
+            float worldZ = chunkWorldPos.y + z;
+            float height = m_terrain.getWorldHeight(worldX, worldZ);
+
+            checkPoints++;
+            if (height < m_waterLevel + 5.0f) {
+                belowWaterPoints++;
+            }
+        }
+    }
+
+    if (belowWaterPoints >= checkPoints * 0.3f) {
+        WaterPlane plane;
+        plane.position = glm::ivec2(chunkX, chunkZ);
+        plane.alpha = 0.0f;
+        plane.fadeTimer.start();
+        plane.state = ChunkState::FADING_IN;
+
+        std::vector<float> waterData = generateWaterPlaneData(chunkWorldPos);
+        plane.vertexCount = waterData.size() / 5;
+
+        glGenVertexArrays(1, &plane.vao);
+        glGenBuffers(1, &plane.vbo);
+
+        glBindVertexArray(plane.vao);
+        glBindBuffer(GL_ARRAY_BUFFER, plane.vbo);
+        glBufferData(GL_ARRAY_BUFFER, waterData.size() * sizeof(float), waterData.data(), GL_STATIC_DRAW);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        m_waterPlanes[key] = plane;
+    }
+}

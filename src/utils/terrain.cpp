@@ -4,6 +4,12 @@
 #include "glm/glm.hpp"
 #include <iostream>
 
+
+// Initialize static members
+const float TerrainGenerator::CHUNK_SIZE = 25.0f;
+const float TerrainGenerator::VERTEX_SPACING = 0.5f;
+
+
 // Constructor
 TerrainGenerator::TerrainGenerator()
 {
@@ -295,11 +301,16 @@ glm::vec2 TerrainGenerator::localToWorld(float localX, float localZ, int chunkX,
     );
 }
 
+
+
 float TerrainGenerator::getWorldHeight(float worldX, float worldZ) {
-    // Scale down the coordinates for Perlin noise
     float scaledX = worldX * 0.02f;
     float scaledZ = worldZ * 0.02f;
-    return getHeight(scaledX, scaledZ) * 50.0f; // Amplify the height
+    float height = getHeight(scaledX, scaledZ) * 50.0f;
+
+    // For terrain generation, we always return the actual height
+    // without water level consideration
+    return height;
 }
 
 std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ) {

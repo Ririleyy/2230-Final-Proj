@@ -63,8 +63,6 @@ private:
 
 
 
-    void initializeWater();    // Initialize water surface
-    void paintWater();         // Render water surface
 
     // Particle system
     std::unique_ptr<ParticleSystem> m_particleSystem;
@@ -131,8 +129,20 @@ private:
 
 
     };
+
+
+    struct WaterPlane {
+        GLuint vao, vbo;
+        glm::ivec2 position;        // Same coordinate system as terrain chunks
+        float alpha;                // For fade effects
+        ChunkState state;          // Reuse the same state enum as terrain
+        QElapsedTimer fadeTimer;    // For transitions
+        int vertexCount;
+    };
+
+
     std::unordered_map<int64_t, TerrainChunk> m_terrainChunks;
-    static const int RENDER_DISTANCE = 5;
+
     void updateTerrainChunks();
     void createChunk(int chunkX, int chunkZ);
     int64_t getChunkKey(int chunkX, int chunkZ) {
@@ -152,14 +162,31 @@ private:
 
 
     // Water rendering related
-    GLuint m_water_vao;        // Vertex Array Object for water surface
-    GLuint m_water_vbo;        // Vertex Buffer Object for water surface
+
     GLuint m_water_shader;     // Shader program for water
-    std::vector<float> m_waterData;  // Water surface vertex data
+
     // Water displacement related
     GLuint m_water_disp_texture;  // Displacement map texture
     float m_water_time;           // For animation
     QImage m_disp_image;          // Store displacement map image
 
     int activeTexture = 0;
+
+
+
+    std::unordered_map<int64_t, WaterPlane> m_waterPlanes;
+    float m_waterLevel = -2.0f;  // Match with TerrainGenerator
+    float m_waterAnimTime = 0.0f;
+
+    // Add new water-related function declarations
+    void createWaterPlane(int chunkX, int chunkZ);
+    void updateWaterPlanes();
+    void paintWaterPlanes();
+    std::vector<float> generateWaterPlaneData(const glm::vec2& position);
+
+    static const int RENDER_DISTANCE = 10;        // Distance for terrain generation
+    static const int WATER_RENDER_DISTANCE = 3;  // Distance for water plane generation, smaller than terrain
+
+
+
 };

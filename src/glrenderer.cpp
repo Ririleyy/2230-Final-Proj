@@ -251,7 +251,7 @@ void GLRenderer::paintGL()
 
     // Paint water
     // paintWater();
-    paintWaterPlanes();
+    // paintWaterPlanes();
 
     // Paint particles last for proper transparency
     if (m_weatherEnabled && m_particleSystem) {

@@ -201,6 +201,23 @@ glm::vec3 TerrainGenerator::getColor(glm::vec3 normal, glm::vec3 position) {
     return glm::vec3(0.5f, 0.5f, 0.5f);
 }
 
+glm::vec3 TerrainGenerator::getColor(float worldX, float worldZ){
+    float scaledX = worldX / m_scale;
+    float scaledZ = worldZ / m_scale;
+    float normalizedHeight = getHeight(scaledX, scaledZ);
+    if (normalizedHeight <= m_waterLevel) {
+        return glm::vec3(0.01f, 0.71f, 0.98f);
+    } else if (normalizedHeight <= m_sandLevel) {
+        return glm::vec3(0.98f, 0.90f, 0.011f);
+    } else if (normalizedHeight <= m_grassLevel) {
+        return glm::vec3(0.48f, 0.90f, 0.33f);
+    } else if (normalizedHeight <= m_rockLevel) {
+        return glm::vec3(0.5f, 0.47f, 0.43f);
+    } else {
+        return glm::vec3(1.0f, 1.0f, 1.0f);
+    }
+}
+
 // Computes the intensity of Perlin noise at some point
 float TerrainGenerator::computePerlin(float x, float y) {
     // Task 1: get grid indices (as ints)
@@ -292,6 +309,7 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
             // Calculate normals and colors
             glm::vec3 n1 = glm::normalize(glm::cross(p2 - p1, p3 - p1));
             glm::vec3 color = getColor(n1, p1);
+            glm::vec3 c1 = getColor(worldPos.x, worldPos.y);
             
             // Calculate UV coordinates
             glm::vec2 uv1(static_cast<float>(x) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
@@ -300,17 +318,16 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
             glm::vec2 uv4(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
             
             // Add first triangle
-            addPointToVector(p1, n1, color, uv1, verts);
-            addPointToVector(p2, n1, color, uv2, verts);
-            addPointToVector(p3, n1, color, uv3, verts);
+            addPointToVector(p1, n1, c1, uv1, verts);
+            addPointToVector(p2, n1, c1, uv2, verts);
+            addPointToVector(p3, n1, c1, uv3, verts);
             
             // Add second triangle
-            addPointToVector(p2, n1, color, uv2, verts);
-            addPointToVector(p4, n1, color, uv4, verts);
-            addPointToVector(p3, n1, color, uv3, verts);
+            addPointToVector(p2, n1, c1, uv2, verts);
+            addPointToVector(p4, n1, c1, uv4, verts);
+            addPointToVector(p3, n1, c1, uv3, verts);
         }
     }
-    
     return verts;
 }
 

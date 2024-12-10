@@ -109,11 +109,22 @@ private:
     const float m_translSpeed = 25;
 
     // terrain
+    enum class ChunkState {
+        FADING_IN,
+        ACTIVE,
+        FADING_OUT,
+        REMOVING
+    };
     struct TerrainChunk {
         GLuint vao;
         GLuint vbo;
         int vertexCount;
         glm::ivec2 position; // Chunk coordinates
+        float alpha; // Start invisible
+        ChunkState state;
+        QElapsedTimer fadeTimer;
+
+
     };
     std::unordered_map<int64_t, TerrainChunk> m_terrainChunks;
     static const int RENDER_DISTANCE = 5;
@@ -130,6 +141,8 @@ private:
     void bindTerrainTexture();
     QImage m_image;
     GLuint m_textureID;
+    GLuint m_textureID2;
     void bindTexture();
     int textureLocation;
+    int activeTexture = 0;
 };

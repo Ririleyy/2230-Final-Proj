@@ -53,6 +53,8 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/shaders/particle.vert
   resources/images/indian-travel-destination-beautiful-attractive.jpg
   resources/images/2.jpg
+  resources/images/front-view-tree-bark.jpg
+
 
 )
 

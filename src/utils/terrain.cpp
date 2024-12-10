@@ -148,6 +148,15 @@ float interpolate(float A, float B, float alpha) {
 // Returns a height value, z, by sampling a noise function
 float TerrainGenerator::getHeight(float x, float y) {
 
+    // float z = 0;
+    // float amplitude_1 = 0.5f;
+    // float frequency_1 = 2.0f;
+    // z += computePerlin(x * frequency_1, y * frequency_1) * amplitude_1;
+    // z += computePerlin(x * 4.0f, y * 4.0f) * 0.25f;
+    // z += computePerlin(x * 8.0f, y * 8.0f) * (1/8);
+    // z += computePerlin(x * 10.0f, y * 10.0f) * 0.1f;
+    // return z;
+
 
     float total = 0;
     float amplitude = 1.0;
@@ -271,6 +280,7 @@ float TerrainGenerator::computePerlin(float x, float y) {
 
 }
 
+
 glm::vec2 TerrainGenerator::worldToLocal(float worldX, float worldZ) {
     return glm::vec2(
         fmod(worldX, CHUNK_SIZE) / CHUNK_SIZE,
@@ -289,7 +299,7 @@ float TerrainGenerator::getWorldHeight(float worldX, float worldZ) {
     // Scale down the coordinates for Perlin noise
     float scaledX = worldX * 0.02f;
     float scaledZ = worldZ * 0.02f;
-    return getHeight(scaledX, scaledZ) * 100.0f; // Amplify the height
+    return getHeight(scaledX, scaledZ) * 50.0f; // Amplify the height
 }
 
 std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ) {
@@ -306,11 +316,16 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
             );
             
             // Generate vertices for two triangles
+            // glm::vec3 p1(worldPos.x, getWorldHeight(worldPos.x, worldPos.y), worldPos.y);
+            // glm::vec3 p2(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y), worldPos.y);
+            // glm::vec3 p3(worldPos.x, getWorldHeight(worldPos.x, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
+            // glm::vec3 p4(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
+
             glm::vec3 p1(worldPos.x, getWorldHeight(worldPos.x, worldPos.y), worldPos.y);
             glm::vec3 p2(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y), worldPos.y);
             glm::vec3 p3(worldPos.x, getWorldHeight(worldPos.x, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
             glm::vec3 p4(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
-            
+
             // Calculate normals and colors
             glm::vec3 n1 = glm::normalize(glm::cross(p2 - p1, p3 - p1));
             glm::vec3 color = getColor(n1, p1);
@@ -335,3 +350,5 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
     
     return verts;
 }
+
+

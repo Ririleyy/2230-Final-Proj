@@ -20,4 +20,11 @@ void main() {
         texColor = texture(texture2, fragUV);
     }
     fragColor = vec4(texColor.rgb, texColor.a * alpha);
+
+    if(activeTexture == 0){
+        texColor = texture(texture1, fragUV);
+    }else{
+        texColor = texture(texture2, fragUV);
+    }
+    fragColor = vec4(texColor.rgb, texColor.a * alpha);
 }

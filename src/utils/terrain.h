@@ -51,4 +51,3 @@ private:
     // Computes the intensity of Perlin noise at some point
     float computePerlin(float x, float y);
 };
-

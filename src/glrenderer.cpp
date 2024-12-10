@@ -510,7 +510,7 @@ void GLRenderer::updateCameraPosition() {
 
 
 void GLRenderer::timerEvent(QTimerEvent* event) {
-    float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
+    float deltaTime = m_elapsedTimer.elapsed() * 0.0005f;
 
     // Handle particle system updates
     if (m_weatherEnabled && m_particleSystem) {
@@ -650,6 +650,9 @@ void GLRenderer::paintTerrain() {
                 continue; // Skip rendering fully transparent chunks
             }
         }
+        if (chunk.alpha <= 0.0f) {
+            continue;
+        }
 
         glBindVertexArray(chunk.vao);
 
@@ -670,7 +673,6 @@ void GLRenderer::paintTerrain() {
 
         // Pass alpha to shader
         glUniform1f(glGetUniformLocation(m_terrain_shader, "alpha"), chunk.alpha);
-
 
         glUniform1f(glGetUniformLocation(m_terrain_shader, "activeTexture"), activeTexture);
 
@@ -796,7 +798,7 @@ void GLRenderer::rebuildMatrices()
 
 void GLRenderer::updateTerrainChunks() {
     // Calculate current chunk position based on camera position
-    int currentChunkX = static_cast<int>(m_eye.x / 30.0f);
+    int currentChunkX = static_cast<int>(m_eye.x / 40.0f);
     int currentChunkZ = static_cast<int>(m_eye.z / 20.0f);
 
     // Mark chunks for fading out if they are out of range

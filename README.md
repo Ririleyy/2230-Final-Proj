@@ -73,3 +73,88 @@ float fadeDuration = 2000.0f;  // Duration for fade in/out effects in millisecon
 - To modify view distance: Adjust `RENDER_DISTANCE` and `WATER_RENDER_DISTANCE`
 - To change water coverage: Modify the threshold in createWaterPlane() (0.3f)
 - To adjust camera movement: Modify `m_rotSpeed` and `m_translSpeed`
+  
+
+
+# Terrain Generation System Documentation
+
+## Overview
+This documentation explains how to modify the terrain generation system, particularly focusing on terrain layering and texture transitions.
+
+## Key Components
+
+### Terrain Height Thresholds
+Located in `terrain.h`, these constants control the height levels for different terrain types:
+```cpp
+const float m_waterLevel = 0.0001f;  // Water surface level
+const float m_sandLevel = 0.05f;     // Beach/sand level
+const float m_grassLevel = 0.2f;     // Grass/vegetation level
+const float m_rockLevel = 0.35f;     // Rock/mountain level
+```
+
+### Transition Parameters
+Controls the smoothness of transitions between different terrain types:
+```cpp
+const float m_transitionWidth = 0.03f;  // Global transition width
+const float m_waterTransition = 0.04f;  // Water to sand transition
+const float m_sandTransition = 0.06f;   // Sand to grass transition
+const float m_grassTransition = 0.08f;  // Grass to rock transition
+```
+
+## How to Modify Terrain Layers
+
+### 1. Adjusting Layer Heights
+- Increase `m_sandLevel` to create larger beach areas
+- Modify `m_grassLevel` to change where vegetation starts
+- Adjust `m_rockLevel` to control mountain height distribution
+
+### 2. Smoothing Transitions
+- Increase transition values for smoother blending between layers
+- Decrease for more distinct boundaries
+- Use values between 0.02 and 0.1 for best results
+
+### 3. Shader Customization
+In `terrain.frag`:
+- Modify `getTransitionFactor()` for different transition styles
+- Adjust texture tiling using UV scaling:
+```glsl
+vec4 sandColor = texture(texture4, fragUV * 3.0); // Adjust scale factor
+```
+
+## Example Configurations
+
+### Mountain-Heavy Terrain
+```cpp
+const float m_waterLevel = 0.0001f;
+const float m_sandLevel = 0.03f;    // Reduced beach area
+const float m_grassLevel = 0.15f;   // Lower vegetation
+const float m_rockLevel = 0.25f;    // More mountain coverage
+```
+
+### Beach-Heavy Terrain
+```cpp
+const float m_waterLevel = 0.0001f;
+const float m_sandLevel = 0.08f;    // Extended beach area
+const float m_grassLevel = 0.25f;   // Higher vegetation start
+const float m_rockLevel = 0.4f;     // Reduced mountain area
+```
+
+## Tips
+1. Adjust values incrementally (0.01-0.05 steps)
+2. Keep transition widths smaller than the distance between levels
+3. Test changes with different viewing angles
+4. Consider performance impact when using very wide transitions
+
+## Common Issues
+1. **Sharp Transitions**: Increase relevant transition width
+2. **Blurry Textures**: Adjust UV scaling in fragment shader
+3. **Missing Layers**: Check if height thresholds overlap
+4. **Performance Issues**: Reduce transition widths
+
+## Performance Considerations
+- Wider transitions require more texture blending
+- More distinct layers (smaller transitions) perform better
+- Balance visual quality with performance needs
+
+
+

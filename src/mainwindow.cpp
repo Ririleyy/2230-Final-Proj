@@ -7,6 +7,7 @@ MainWindow::MainWindow() : QWidget(nullptr), glRenderer(nullptr)
 {
     // Create main renderer
     glRenderer = new GLRenderer(this);
+    glRenderer->setMinimumSize(1920, 1080);
 
     // Create main layouts
     QHBoxLayout *hLayout = new QHBoxLayout(this);
@@ -34,7 +35,7 @@ MainWindow::MainWindow() : QWidget(nullptr), glRenderer(nullptr)
 
     // Create sliders and spinboxes
     createSliderSpinbox(fovSlider, fovBox, 10, 179, 45);
-    createSliderSpinbox(timeSlider, timeBox, 0, 24, 12);
+    createSliderSpinbox(timeSlider, timeBox, 0, 240, 120);
 
     // Create Time controls
     lfov->addWidget(fovSlider);
@@ -158,6 +159,7 @@ void MainWindow::createSliderSpinbox(QSlider *&slider, QSpinBox *&spinbox, int m
     spinbox->setMaximum(max);
     spinbox->setSingleStep(1);
     spinbox->setValue(defaultVal);
+    // spinbox->setDecimals(1);  // Allows decimal input
 }
 
 void MainWindow::connectUIElements() {
@@ -187,7 +189,7 @@ void MainWindow::onValChangeTime(int newValue) {
 
     timeSlider->setValue(newValue);
     timeBox->setValue(newValue);
-    settings.time = timeSlider->value();
+    settings.time = timeSlider->value() / 10.0f;
     if (glRenderer) glRenderer->settingsChanged();
 }
 

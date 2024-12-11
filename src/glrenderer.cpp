@@ -616,63 +616,6 @@ void GLRenderer::renderParticles() {
     glDisable(GL_PROGRAM_POINT_SIZE);
 }
 
-void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
-    if (m_mouseDown == MouseStaus::LEFT) {
-        int posX = event->position().x();
-        int posY = event->position().y();
-        int deltaX = posX - m_prev_mouse_pos.x;
-        int deltaY = posY - m_prev_mouse_pos.y;
-        m_prev_mouse_pos = glm::vec2(posX, posY);
-
-        // First rotate around Y axis (yaw)
-        glm::vec3 dir = m_look - m_eye;
-        glm::mat3 rotY = Camera::getRotationMatrix(glm::vec3(0, 1, 0), -deltaX * m_rotSpeed);
-        dir = rotY * dir;
-
-        // Then rotate around local right axis (pitch)
-        glm::vec3 right = glm::normalize(glm::cross(dir, m_up));
-        glm::mat3 rotX = Camera::getRotationMatrix(right, -deltaY * m_rotSpeed);
-        dir = rotX * dir;
-
-        // Update look position and up vector
-        m_look = m_eye + dir;
-
-        rebuildMatrices();
-    }
-    else if (m_mouseDown == MouseStaus::RIGHT) {
-        int posX = event->position().x();
-        int posY = event->position().y();
-        int deltaX = posX - m_prev_mouse_pos.x;
-        int deltaY = posY - m_prev_mouse_pos.y;
-        m_prev_mouse_pos = glm::vec2(posX, posY);
-
-        // Get the current view direction and distance
-        glm::vec3 dir = m_look - m_eye;
-        float distance = glm::length(dir);
-        dir = glm::normalize(dir);
-
-        // Rotate around Y axis (yaw)
-        glm::mat3 rotY = Camera::getRotationMatrix(glm::vec3(0, 1, 0), -deltaX * m_rotSpeed);
-        dir = rotY * dir;
-
-        // Rotate around local right axis (pitch)
-        glm::vec3 right = glm::normalize(glm::cross(dir, m_up));
-        glm::mat3 rotX = Camera::getRotationMatrix(right, deltaY * m_rotSpeed);
-        dir = rotX * dir;
-
-        // Update camera position, maintaining the same distance from look point
-        m_eye = m_look - dir * distance;
-
-        // Update up vector
-        m_up = glm::normalize(glm::cross(right, dir));
-
-        // Apply constraints
-        constrainCamera();
-
-        rebuildMatrices();
-    }
-}
-
 void GLRenderer::constrainCamera() {
     const float maxHeight = 100.0f;
     const float minHeight = 1.0f;
@@ -952,6 +895,65 @@ void GLRenderer::resizeGL(int w, int h)
 {
     m_proj = glm::perspective(glm::radians(m_fov), 1.0f * w / h, 0.01f, 1000.0f);
 }
+
+
+void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
+    if (m_mouseDown == MouseStaus::LEFT) {
+        int posX = event->position().x();
+        int posY = event->position().y();
+        int deltaX = posX - m_prev_mouse_pos.x;
+        int deltaY = posY - m_prev_mouse_pos.y;
+        m_prev_mouse_pos = glm::vec2(posX, posY);
+
+        // First rotate around Y axis (yaw)
+        glm::vec3 dir = m_look - m_eye;
+        glm::mat3 rotY = Camera::getRotationMatrix(glm::vec3(0, 1, 0), -deltaX * m_rotSpeed);
+        dir = rotY * dir;
+
+        // Then rotate around local right axis (pitch)
+        glm::vec3 right = glm::normalize(glm::cross(dir, m_up));
+        glm::mat3 rotX = Camera::getRotationMatrix(right, -deltaY * m_rotSpeed);
+        dir = rotX * dir;
+
+        // Update look position and up vector
+        m_look = m_eye + dir;
+
+        rebuildMatrices();
+    }
+    else if (m_mouseDown == MouseStaus::RIGHT) {
+        int posX = event->position().x();
+        int posY = event->position().y();
+        int deltaX = posX - m_prev_mouse_pos.x;
+        int deltaY = posY - m_prev_mouse_pos.y;
+        m_prev_mouse_pos = glm::vec2(posX, posY);
+
+        // Get the current view direction and distance
+        glm::vec3 dir = m_look - m_eye;
+        float distance = glm::length(dir);
+        dir = glm::normalize(dir);
+
+        // Rotate around Y axis (yaw)
+        glm::mat3 rotY = Camera::getRotationMatrix(glm::vec3(0, 1, 0), -deltaX * m_rotSpeed);
+        dir = rotY * dir;
+
+        // Rotate around local right axis (pitch)
+        glm::vec3 right = glm::normalize(glm::cross(dir, m_up));
+        glm::mat3 rotX = Camera::getRotationMatrix(right, deltaY * m_rotSpeed);
+        dir = rotX * dir;
+
+        // Update camera position, maintaining the same distance from look point
+        m_eye = m_look - dir * distance;
+
+        // Update up vector
+        m_up = glm::normalize(glm::cross(right, dir));
+
+        // Apply constraints
+        constrainCamera();
+
+        rebuildMatrices();
+    }
+}
+
 
 void GLRenderer::mousePressEvent(QMouseEvent* event)
 {

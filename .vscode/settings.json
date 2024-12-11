@@ -59,6 +59,10 @@
         "__tree": "cpp",
         "fstream": "cpp",
         "map": "cpp",
-        "unordered_set": "cpp"
+        "unordered_set": "cpp",
+        "*.ipp": "cpp",
+        "system_error": "cpp",
+        "chrono": "cpp",
+        "format": "cpp"
     }
 }

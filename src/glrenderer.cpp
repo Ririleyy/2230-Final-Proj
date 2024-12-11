@@ -505,7 +505,7 @@ void GLRenderer::bindTerrainTexture() {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Load water texture
-    QString water_filepath = QString(":/resources/images/water_displacement_1.jpg");
+    QString water_filepath = QString(":/resources/images/clear-ocean-water-sand.jpg");
     if (!m_image.load(water_filepath)) {
         std::cerr << "Failed to load texture: " << water_filepath.toStdString() << std::endl;
         return;

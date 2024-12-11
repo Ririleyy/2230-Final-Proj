@@ -1,100 +1,70 @@
 #version 330 core
 
-in vec2 fragUV; // UV coordinates from vertex shader
+in vec2 fragUV;
 in vec3 outColor;
+in float height;
+in vec3 fragNormal;
+
 uniform sampler2D texture1; // snow
 uniform sampler2D texture2; // rock
 uniform sampler2D texture3; // grass
 uniform sampler2D texture4; // sand
 uniform sampler2D texture5; // water
 uniform int activeTexture;
-uniform float alpha; // Alpha value for fading
-uniform float brightness; // Dynamic brightness factor (0.0 to 1.0)
-uniform float minBrightness; // Minimum brightness value (e.g., 0.3)
+uniform float alpha;
+uniform float brightness;
+uniform float minBrightness;
+uniform float transitionWidth;
 
 out vec4 fragColor;
 
-void main() {
-    vec4 texColor;
+// Improved transition function for smoother blending
+float getTransitionFactor(float value, float threshold, float width) {
+    float lowerBound = threshold - width;
+    float upperBound = threshold + width;
 
-    // Check if outColor corresponds to grass color (0.0, 1.0, 0.0)
-    if (outColor == vec3(0.0, 0.0, 0.0)) {
-        texColor = texture(texture5, fragUV); // Use seafloor texture
-    } else if(outColor == vec3(1.0, 0.0, 0.0)){
+    if(value <= lowerBound) return 0.0;
+    if(value >= upperBound) return 1.0;
 
-        texColor = texture(texture4, fragUV); // sand texture
-    }else{
-        if(activeTexture == 0){
-            texColor = texture(texture1, fragUV);
-        }else if(activeTexture == 1){
-            texColor = texture(texture2, fragUV);
-        }else if(activeTexture == 2){
-            texColor = texture(texture3, fragUV);
-        }
-    }
-
-    float effectiveBrightness = max(brightness, minBrightness);
-
-    // Apply brightness adjustment to the sampled texture color
-    vec3 adjustedColor = texColor.rgb * effectiveBrightness;
-
-    // Apply alpha blending and output the final color
-    fragColor = vec4(adjustedColor, texColor.a * alpha);
-
-
+    float t = (value - lowerBound) / (upperBound - lowerBound);
+    // Using improved smoothstep for better transition
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
 }
 
-// #version 330 core
+void main() {
+    // Get base texture colors with adjusted UV scaling for better detail
+    vec4 waterColor = texture(texture5, fragUV * 2.0);
+    vec4 sandColor = texture(texture4, fragUV * 3.0); // Increased sand texture detail
+    vec4 mountainColor;
 
-// in vec2 fragUV; // UV coordinates from vertex shader
-// in vec3 outColor;
-// uniform sampler2D texture1; // snow
-// uniform sampler2D texture2; // rock
-// uniform sampler2D texture3; // grass
-// uniform sampler2D texture4; // sand
-// uniform sampler2D texture5; // water
-// uniform int activeTexture;
-// uniform float alpha; // Alpha value for fading
-// uniform float brightness; // Dynamic brightness factor (0.0 to 1.0)
-// uniform float minBrightness; // Minimum brightness value (e.g., 0.3)
+    // Select and scale mountain texture
+    if(activeTexture == 0) {
+        mountainColor = texture(texture1, fragUV * 2.0);
+    } else if(activeTexture == 1) {
+        mountainColor = texture(texture2, fragUV * 2.0);
+    } else {
+        mountainColor = texture(texture3, fragUV * 2.0);
+    }
 
-// out vec4 fragColor;
+    vec4 finalColor;
 
-// void main() {
-//     vec4 texColor;
-//     if (outColor == vec3(0.0, 0.0, 0.0)) {
-//         texColor = texture(texture5, fragUV); // Use seafloor texture
-//     }else if(outColor == vec3(1.0, 0.0, 0.0)){
+    // Enhanced beach area transition
+    float sandFactor = getTransitionFactor(height, 0.02, transitionWidth * 1.5);
+    // Wider transition zone for beach
+    if (height < 0.05) { // Expanded beach zone
+        float waterBlend = getTransitionFactor(height, 0.01, transitionWidth);
+        finalColor = mix(waterColor, sandColor, waterBlend);
+        // Enhance sand color visibility
+        finalColor = mix(finalColor, sandColor, sandFactor * 1.2);
+    } else {
+        float mountainBlend = getTransitionFactor(height, 0.1, transitionWidth);
+        finalColor = mix(sandColor, mountainColor, mountainBlend);
+    }
 
-//         texColor = texture(texture4, fragUV);
+    // Enhance brightness for beach areas
+    float beachBrightness = 1.0 + (sandFactor * 0.2); // Slight brightness boost for beach
+    float effectiveBrightness = max(brightness * beachBrightness, minBrightness);
 
-//     }else{
-
-//         if(activeTexture == 0){
-
-//             texColor = texture(texture1, fragUV);
-
-//         }else if(activeTexture == 1){
-
-//             texColor = texture(texture2, fragUV);
-
-//         }else if(activeTexture == 2){
-
-//             texColor = texture(texture3, fragUV);
-
-//         }
-
-//     }
-
-
-//     float effectiveBrightness = max(brightness, minBrightness);
-
-//     // Apply brightness adjustment to the sampled texture color
-//     vec3 adjustedColor = texColor.rgb * effectiveBrightness;
-
-//     // Apply alpha blending and output the final color
-//     fragColor = vec4(adjustedColor, texColor.a * alpha);
-
-
-// }
-
+    // Output final color with enhanced alpha for beach areas
+    fragColor = vec4(finalColor.rgb * effectiveBrightness, finalColor.a * alpha);
+}

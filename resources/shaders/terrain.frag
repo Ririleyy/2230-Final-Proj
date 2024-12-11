@@ -99,7 +99,7 @@ void main() {
     mountainColor.rgb *= effectiveBrightness;
 
     // Final color with alpha
-    fragColor = vec4(mountainColor.rgb, mountainColor.a * alpha);
+    fragColor = vec4(mountainColor.rgb, mountainColor.a);
 }
 
 

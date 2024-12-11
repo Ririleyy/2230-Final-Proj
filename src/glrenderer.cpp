@@ -1086,43 +1086,71 @@ void GLRenderer::updateTerrainChunks(bool force) {
     }
 
     // Update water planes
-    // Mark water planes for removal if they're too far
+   updateWaterPlanesOptimized(currentChunkX, currentChunkZ);
+}
+
+void GLRenderer::updateWaterPlanesOptimized(int currentChunkX, int currentChunkZ) {
+    // Calculate water plane boundaries
+    int minWaterX = currentChunkX - WATER_RENDER_DISTANCE;
+    int maxWaterX = currentChunkX + WATER_RENDER_DISTANCE;
+    int minWaterZ = currentChunkZ - WATER_RENDER_DISTANCE;
+    int maxWaterZ = currentChunkZ + WATER_RENDER_DISTANCE;
+
+    // Mark out-of-range water planes for removal
     for (auto& [key, plane] : m_waterPlanes) {
         int chunkX = plane.position.x;
         int chunkZ = plane.position.y;
 
         if (plane.state != ChunkState::FADING_OUT &&
-            (abs(chunkX - currentChunkX) > WATER_RENDER_DISTANCE ||
-                abs(chunkZ - currentChunkZ) > WATER_RENDER_DISTANCE)) {
+            (chunkX < minWaterX || chunkX > maxWaterX || 
+             chunkZ < minWaterZ || chunkZ > maxWaterZ)) {
             plane.state = ChunkState::FADING_OUT;
             plane.fadeTimer.restart();
         }
     }
 
-    // Create new water planes for all chunks within render distance
-    for (int x = -WATER_RENDER_DISTANCE; x <= WATER_RENDER_DISTANCE; x++) {
-        for (int z = -WATER_RENDER_DISTANCE; z <= WATER_RENDER_DISTANCE; z++) {
-            int chunkX = currentChunkX + x;
-            int chunkZ = currentChunkZ + z;
-            int64_t key = getChunkKey(chunkX, chunkZ);
-
+    // Create new water planes only for the perimeter of each layer
+    for (int layer = 0; layer <= WATER_RENDER_DISTANCE; ++layer) {
+        if (layer == 0) {
+            // Center chunk
+            int64_t key = getChunkKey(currentChunkX, currentChunkZ);
             if (m_waterPlanes.find(key) == m_waterPlanes.end()) {
-                createWaterPlane(chunkX, chunkZ);
+                createWaterPlane(currentChunkX, currentChunkZ);
+            }
+            continue;
+        }
+
+        // Process the square perimeter
+        for (int offset = -layer; offset <= layer; ++offset) {
+            // Top and bottom edges
+            createWaterPlaneIfNeeded(currentChunkX + offset, currentChunkZ - layer);
+            createWaterPlaneIfNeeded(currentChunkX + offset, currentChunkZ + layer);
+            
+            // Left and right edges (excluding corners)
+            if (offset != -layer && offset != layer) {
+                createWaterPlaneIfNeeded(currentChunkX - layer, currentChunkZ + offset);
+                createWaterPlaneIfNeeded(currentChunkX + layer, currentChunkZ + offset);
             }
         }
     }
 
-    // Remove far water planes
+    // Remove faded water planes
     for (auto it = m_waterPlanes.begin(); it != m_waterPlanes.end();) {
         if (it->second.state == ChunkState::FADING_OUT &&
             it->second.fadeTimer.elapsed() > 2000) {
             glDeleteBuffers(1, &it->second.vbo);
             glDeleteVertexArrays(1, &it->second.vao);
             it = m_waterPlanes.erase(it);
-        }
-        else {
+        } else {
             ++it;
         }
+    }
+}
+
+void GLRenderer::createWaterPlaneIfNeeded(int x, int z) {
+    int64_t key = getChunkKey(x, z);
+    if (m_waterPlanes.find(key) == m_waterPlanes.end()) {
+        createWaterPlane(x, z);
     }
 }
 
@@ -1237,10 +1265,10 @@ std::vector<float> GLRenderer::generateWaterPlaneData(const glm::dvec2& position
     for (int x = 0; x < verticesPerSide; x++) {
         for (int z = 0; z < verticesPerSide; z++) {
             // Calculate exact world positions
-            float x1 = position.x + x * TerrainGenerator::VERTEX_SPACING - overlap;
-            float x2 = position.x + (x + 1) * TerrainGenerator::VERTEX_SPACING + overlap;
-            float z1 = position.y + z * TerrainGenerator::VERTEX_SPACING - overlap;
-            float z2 = position.y + (z + 1) * TerrainGenerator::VERTEX_SPACING + overlap;
+            float x1 = position.x + x * TerrainGenerator::VERTEX_SPACING;
+            float x2 = position.x + (x + 1) * TerrainGenerator::VERTEX_SPACING;
+            float z1 = position.y + z * TerrainGenerator::VERTEX_SPACING;
+            float z2 = position.y + (z + 1) * TerrainGenerator::VERTEX_SPACING;
 
             // Calculate UV coordinates
             float u1 = static_cast<float>(x) / verticesPerSide;

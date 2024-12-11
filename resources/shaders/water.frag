@@ -34,6 +34,6 @@ void main() {
     finalColor = finalColor * effectiveBrightness;
 
     // Final color with transparency
-    // FragColor = vec4(finalColor, 0.95 * alpha);
-    FragColor = vec4(finalColor, 1);
+    FragColor = vec4(finalColor, 0.8);
+    // FragColor = vec4(finalColor, 1);
 }

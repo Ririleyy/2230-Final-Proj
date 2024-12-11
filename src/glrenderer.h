@@ -183,6 +183,8 @@ private:
     float m_waterAnimTime = 0.0f;
 
     // Add new water-related function declarations
+    void updateWaterPlanesOptimized(int currentChunkX, int currentChunkZ);
+    void createWaterPlaneIfNeeded(int x, int z);
     void createWaterPlane(int chunkX, int chunkZ);
     void updateWaterPlanes();
     void paintWaterPlanes();

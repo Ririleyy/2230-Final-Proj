@@ -191,7 +191,7 @@ private:
     std::vector<float> generateWaterPlaneData(const glm::vec2& position);
 
     static const int RENDER_DISTANCE = 10;        // Distance for terrain generation
-    static const int WATER_RENDER_DISTANCE = 3;  // Distance for water plane generation, smaller than terrain
+    static const int WATER_RENDER_DISTANCE = 10;  // Distance for water plane generation, smaller than terrain
 
 
 

@@ -432,7 +432,7 @@ void GLRenderer::bindTerrainTexture() {
     // Unbind sand texture
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // Load water texture
+    // Load sea bottom texture
     QString water_filepath = QString(":/resources/images/water_displacement_1.jpg");
     if (!m_image.load(water_filepath)) {
         std::cerr << "Failed to load texture: " << water_filepath.toStdString() << std::endl;
@@ -762,9 +762,9 @@ void GLRenderer::paintTerrain() {
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, m_textureID4);
         glUniform1i(glGetUniformLocation(m_terrain_shader, "texture4"), 3);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, m_textureID5);
-        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture5"), 4);
+        // glActiveTexture(GL_TEXTURE4);
+        // glBindTexture(GL_TEXTURE_2D, m_textureID5);
+        // glUniform1i(glGetUniformLocation(m_terrain_shader, "texture5"), 4);
 
         glUniform1f(glGetUniformLocation(m_terrain_shader, "brightness"), m_brightness);
         glUniform1f(glGetUniformLocation(m_terrain_shader, "minBrightness"), 0.3f); // Set minimum brightness

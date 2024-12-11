@@ -54,14 +54,15 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/shaders/particle.vert
   resources/shaders/water.frag
   resources/shaders/water.vert
+
   resources/images/indian-travel-destination-beautiful-attractive.jpg
   resources/images/2.jpg
   resources/images/natural-landscape.jpg
-
+  resources/images/water_displacement_0.png
   resources/images/water_displacement_1.jpg
-  resources/images/water_displacement_2.jpg
-  resources/images/water_displacement_3.jpg
-  resources/images/water_displacement_4.jpg
+  # resources/images/water_displacement_2.jpg
+  # resources/images/water_displacement_3.jpg
+  # resources/images/water_displacement_4.jpg
   resources/images/front-view-tree-bark.jpg
   resources/images/top-view-corn-flour-texture.jpg
   resources/images/sand-close.jpg

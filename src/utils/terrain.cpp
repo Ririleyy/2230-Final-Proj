@@ -138,47 +138,64 @@ glm::vec3 TerrainGenerator::getNormal(int row, int col) {
     return glm::normalize(normal);
 }
 
-glm::vec3 TerrainGenerator::getColor(float worldX, float worldZ) {
+// glm::vec3 TerrainGenerator::getColor(float worldX, float worldZ) {
+//     float scaledX = worldX / m_scale;
+//     float scaledZ = worldZ / m_scale;
+//     float normalizedHeight = getHeight(scaledX, scaledZ);
+
+//     auto easeInOut = [](float t) {
+//         return t * t * (3.0f - 2.0f * t);
+//     };
+
+//     float waterToSandStart = m_waterLevel;
+//     float waterToSandEnd = m_waterLevel + m_waterTransition;
+//     float sandToGrassStart = m_sandLevel;
+//     float sandToGrassEnd = m_sandLevel + m_sandTransition;
+//     float grassToMountainStart = m_grassLevel;
+//     float grassToMountainEnd = m_grassLevel + m_grassTransition;
+
+//     if (normalizedHeight <= waterToSandStart) {
+//         return glm::vec3(0.0f, 0.0f, 0.0f);
+//     }
+//     else if (normalizedHeight <= waterToSandEnd) {
+//         float t = (normalizedHeight - waterToSandStart) / m_waterTransition;
+//         return glm::vec3(easeInOut(t), 0.0f, 0.0f);
+//     }
+//     else if (normalizedHeight <= sandToGrassStart) {
+//         return glm::vec3(1.0f, 0.0f, 0.0f);
+//     }
+//     else if (normalizedHeight <= sandToGrassEnd) {
+//         float t = (normalizedHeight - sandToGrassStart) / m_sandTransition;
+//         float blend = easeInOut(t);
+//         return glm::vec3(1.0f - blend, blend, 0.0f);
+//     }
+//     else if (normalizedHeight <= grassToMountainStart) {
+//         return glm::vec3(0.0f, 1.0f, 0.0f);
+//     }
+//     else if (normalizedHeight <= grassToMountainEnd) {
+//         float t = (normalizedHeight - grassToMountainStart) / m_grassTransition;
+//         float blend = easeInOut(t);
+//         return glm::vec3(0.0f, 1.0f - blend, blend);
+//     }
+//     else {
+//         return glm::vec3(0.0f, 0.0f, 1.0f);
+//     }
+// }
+
+glm::vec3 TerrainGenerator::getColor(float worldX, float worldZ){
     float scaledX = worldX / m_scale;
     float scaledZ = worldZ / m_scale;
     float normalizedHeight = getHeight(scaledX, scaledZ);
-
-    auto easeInOut = [](float t) {
-        return t * t * (3.0f - 2.0f * t);
-    };
-
-    float waterToSandStart = m_waterLevel;
-    float waterToSandEnd = m_waterLevel + m_waterTransition;
-    float sandToGrassStart = m_sandLevel;
-    float sandToGrassEnd = m_sandLevel + m_sandTransition;
-    float grassToMountainStart = m_grassLevel;
-    float grassToMountainEnd = m_grassLevel + m_grassTransition;
-
-    if (normalizedHeight <= waterToSandStart) {
+    if (normalizedHeight <= m_waterLevel) {
         return glm::vec3(0.0f, 0.0f, 0.0f);
-    }
-    else if (normalizedHeight <= waterToSandEnd) {
-        float t = (normalizedHeight - waterToSandStart) / m_waterTransition;
-        return glm::vec3(easeInOut(t), 0.0f, 0.0f);
-    }
-    else if (normalizedHeight <= sandToGrassStart) {
+    } else if (normalizedHeight <= m_sandLevel) {
         return glm::vec3(1.0f, 0.0f, 0.0f);
-    }
-    else if (normalizedHeight <= sandToGrassEnd) {
-        float t = (normalizedHeight - sandToGrassStart) / m_sandTransition;
-        float blend = easeInOut(t);
-        return glm::vec3(1.0f - blend, blend, 0.0f);
-    }
-    else if (normalizedHeight <= grassToMountainStart) {
+    } else if (normalizedHeight <= m_grassLevel) {
         return glm::vec3(0.0f, 1.0f, 0.0f);
-    }
-    else if (normalizedHeight <= grassToMountainEnd) {
-        float t = (normalizedHeight - grassToMountainStart) / m_grassTransition;
-        float blend = easeInOut(t);
-        return glm::vec3(0.0f, 1.0f - blend, blend);
-    }
-    else {
+    } else if (normalizedHeight <= m_rockLevel) {
         return glm::vec3(0.0f, 0.0f, 1.0f);
+    } else {
+        return glm::vec3(1.0f, 1.0f, 1.0f);
     }
 }
 

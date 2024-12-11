@@ -430,6 +430,164 @@ void GLRenderer::bindTerrainTexture() {
     // Unbind water texture
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    // Load snowTop texture
+    QString snowTop_filepath = QString(":/resources/images/snowNewtop.jpg");
+    if (!m_image.load(snowTop_filepath)) {
+        std::cerr << "Failed to load texture: " << snowTop_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for water
+    glGenTextures(1, &m_textureID6);
+    glActiveTexture(GL_TEXTURE5); // Bind to texture unit 4
+    glBindTexture(GL_TEXTURE_2D, m_textureID6);
+
+    // Upload water texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for water texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Unbind water texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Load snowSand texture
+    QString snowSand_filepath = QString(":/resources/images/snowSand.jpg");
+    if (!m_image.load(snowSand_filepath)) { // Correct filepath here
+        std::cerr << "Failed to load texture: " << snowSand_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for snow sand
+    glGenTextures(1, &m_textureID7);
+    glActiveTexture(GL_TEXTURE6); // Use correct texture unit
+    glBindTexture(GL_TEXTURE_2D, m_textureID7);
+
+    // Upload snow sand texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for snow sand
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Unbind water texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Load grassTop texture
+    QString grassTop_filepath = QString(":/resources/images/grassTop.jpg");
+    if (!m_image.load(grassTop_filepath)) {
+        std::cerr << "Failed to load texture: " << grassTop_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for water
+    glGenTextures(1, &m_textureID8);
+    glActiveTexture(GL_TEXTURE7); // Bind to texture unit 4
+    glBindTexture(GL_TEXTURE_2D, m_textureID8);
+
+    // Upload water texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for water texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // Unbind water texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Load rockSand texture
+    QString rockSand_filepath = QString(":/resources/images/rockSand.jpg");
+    if (!m_image.load(rockSand_filepath)) {
+        std::cerr << "Failed to load texture: " << rockSand_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for water
+    glGenTextures(1, &m_textureID9);
+    glActiveTexture(GL_TEXTURE8); // Bind to texture unit 4
+    glBindTexture(GL_TEXTURE_2D, m_textureID9);
+
+    // Upload water texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for water texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+    // Unbind water texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Load rockSand texture
+    QString seaFloor_filepath = QString(":/resources/images/seaFloor.jpg");
+    if (!m_image.load(seaFloor_filepath)) {
+        std::cerr << "Failed to load texture: " << seaFloor_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for water
+    glGenTextures(1, &m_textureID10);
+    glActiveTexture(GL_TEXTURE9); // Bind to texture unit 4
+    glBindTexture(GL_TEXTURE_2D, m_textureID10);
+
+    // Upload water texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for water texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+    // Unbind water texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Load rockSand texture
+    QString rockMiddle_filepath = QString(":/resources/images/rockMiddle.jpg");
+    if (!m_image.load(rockMiddle_filepath)) {
+        std::cerr << "Failed to load texture: " << rockMiddle_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for water
+    glGenTextures(1, &m_textureID11);
+    glActiveTexture(GL_TEXTURE10); // Bind to texture unit 4
+    glBindTexture(GL_TEXTURE_2D, m_textureID11);
+
+    // Upload water texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for water texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+    // Unbind water texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
 
 
     glUseProgram(0);
@@ -693,6 +851,29 @@ void GLRenderer::paintTerrain() {
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, m_textureID4);
         glUniform1i(glGetUniformLocation(m_terrain_shader, "texture4"), 3);
+
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, m_textureID6);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture6"), 5);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, m_textureID7);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture7"), 6);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, m_textureID8);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture8"), 7);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, m_textureID9);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture9"), 8);
+
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, m_textureID10);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture10"), 9);
+
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, m_textureID11);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture11"), 10);
+
+
 
         glUniform1f(glGetUniformLocation(m_terrain_shader, "brightness"), m_brightness);
         glUniform1f(glGetUniformLocation(m_terrain_shader, "minBrightness"), 0.3f); // Set minimum brightness

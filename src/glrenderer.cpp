@@ -669,8 +669,8 @@ void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
 
 // Update constrainCamera to better handle vertical limits
 void GLRenderer::constrainCamera() {
-    const float maxHeight = 90.0f;
-    const float minHeight = 10.0f;
+    const float maxHeight = 190.0f;
+    const float minHeight = 1.0f;
 
     if (m_eye.y > maxHeight) {
         float adjustment = m_eye.y - maxHeight;
@@ -929,6 +929,7 @@ void GLRenderer::settingsChanged() {
 
     // Update time and view-related settings
     timeToSunPos(settings.time);
+    sunPosToBrightness();
     m_fov = settings.fov;
 
     rebuildMatrices();
@@ -951,16 +952,17 @@ void GLRenderer::timeToSunPos(const float time)
     }
     zenith = glm::min(zenith, glm::radians(130.0f));
     // std::cout << "Time: " << time << " Zenith: " << glm::degrees(zenith) << " Azimuth: " << glm::degrees(azimuth) << std::endl;
+    m_sunPos = glm::vec2(azimuth, zenith);
+}
 
-    // Calculate brightness based on zenith angle
+void GLRenderer::sunPosToBrightness()
+{
+    float zenith = m_sunPos.y;
     float dynamicBrightness = glm::cos(zenith);
     dynamicBrightness = glm::clamp(dynamicBrightness, 0.0f, 1.0f); // Clamp between 0 and 1
-
-    // Ensure a minimum brightness value
     float minBrightness = 0.3f; // 30% brightness
     m_brightness = glm::mix(minBrightness, 1.0f, dynamicBrightness);
 
-    m_sunPos = glm::vec2(azimuth, zenith);
 }
 
 // ================== Other stencil code
@@ -1141,7 +1143,7 @@ void GLRenderer::updateTerrainChunks() {
 void GLRenderer::createChunk(int chunkX, int chunkZ) {
     TerrainChunk chunk;
     chunk.position = glm::ivec2(chunkX, chunkZ);
-    chunk.alpha = 0.0f;
+    chunk.alpha = m_brightness;
     chunk.fadeTimer.start();
     chunk.state = ChunkState::FADING_IN;
 

@@ -60,6 +60,7 @@ private:
     void bindTerrainVaoVbo();
     void paintTerrain();
     void paintDome();
+    void sunPosToBrightness();
 
 
 

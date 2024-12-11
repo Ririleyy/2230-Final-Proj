@@ -32,8 +32,8 @@ private:
     std::vector<glm::vec2> m_randVecLookup;
     int m_resolution;
     int m_lookupSize;
-    const int m_scale = 100;
-    const float m_waterLevel = 0.001f;
+    const int m_scale = 120;
+    const float m_waterLevel = 0.0001f;
     const float m_sandLevel = 0.01f;
     const float m_grassLevel = 0.15f;
     const float m_rockLevel = 0.25f;

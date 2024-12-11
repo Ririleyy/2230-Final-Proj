@@ -505,7 +505,7 @@ void GLRenderer::bindTerrainTexture() {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     // Load water texture
-    QString water_filepath = QString(":/resources/images/clear-ocean-water-sand.jpg");
+    QString water_filepath = QString(":/resources/images/water_displacement_1.jpg");
     if (!m_image.load(water_filepath)) {
         std::cerr << "Failed to load texture: " << water_filepath.toStdString() << std::endl;
         return;
@@ -918,6 +918,9 @@ void GLRenderer::paintTerrain() {
         glBindTexture(GL_TEXTURE_2D, m_textureID5);
         glUniform1i(glGetUniformLocation(m_terrain_shader, "texture5"), 4);
 
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "brightness"), m_brightness);
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "minBrightness"), 0.3f); // Set minimum brightness
+
 
 
         // Pass alpha to shader
@@ -979,6 +982,15 @@ void GLRenderer::timeToSunPos(const float time)
     }
     zenith = glm::min(zenith, glm::radians(130.0f));
     // std::cout << "Time: " << time << " Zenith: " << glm::degrees(zenith) << " Azimuth: " << glm::degrees(azimuth) << std::endl;
+
+    // Calculate brightness based on zenith angle
+    float dynamicBrightness = glm::cos(zenith);
+    dynamicBrightness = glm::clamp(dynamicBrightness, 0.0f, 1.0f); // Clamp between 0 and 1
+
+    // Ensure a minimum brightness value
+    float minBrightness = 0.3f; // 30% brightness
+    m_brightness = glm::mix(minBrightness, 1.0f, dynamicBrightness);
+
     m_sunPos = glm::vec2(azimuth, zenith);
 }
 

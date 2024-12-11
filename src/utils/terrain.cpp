@@ -7,7 +7,7 @@
 
 // Initialize static members
 const float TerrainGenerator::CHUNK_SIZE = 25.0f;
-const float TerrainGenerator::VERTEX_SPACING = 0.2f;
+const float TerrainGenerator::VERTEX_SPACING = 0.5f;
 
 
 // Constructor
@@ -329,16 +329,16 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
             glm::vec3 c1 = getColor(worldPos.x, worldPos.y);
             
             // // Calculate UV coordinates
-            // glm::vec2 uv1(static_cast<float>(x) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
-            // glm::vec2 uv2(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
-            // glm::vec2 uv3(static_cast<float>(x) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
-            // glm::vec2 uv4(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
+            glm::vec2 uv1(static_cast<float>(x) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
+            glm::vec2 uv2(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
+            glm::vec2 uv3(static_cast<float>(x) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
+            glm::vec2 uv4(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
 
             // Calculate normals, colors, and UVs
-            glm::vec2 uv1(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
-            glm::vec2 uv2(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
-            glm::vec2 uv3(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
-            glm::vec2 uv4(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
+            // glm::vec2 uv1(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
+            // glm::vec2 uv2(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
+            // glm::vec2 uv3(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
+            // glm::vec2 uv4(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
             
             // Add first triangle
             addPointToVector(p1, n1, c1, uv1, verts);

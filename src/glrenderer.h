@@ -162,6 +162,7 @@ private:
     GLuint m_textureID5;
     void bindTexture();
     int textureLocation;
+    float m_brightness;
 
 
 

@@ -9,6 +9,9 @@ in vec2 WaveCoord;
 uniform sampler2D dispTexture;
 uniform float dispStrength;
 uniform float time;
+uniform float alpha;
+uniform float brightness;
+uniform float minBrightness;
 
 float processWaterLayer(vec2 coord) {
     vec2 dispValue = texture(dispTexture, coord).rg;
@@ -16,18 +19,20 @@ float processWaterLayer(vec2 coord) {
 }
 
 void main() {
-    // Calculate water displacement
+    // Calculate water displacement effects
     float baseLayer = processWaterLayer(DispCoord1) * dispStrength;
     float poolLayer = processWaterLayer(DispCoord2) * (dispStrength * 0.7);
     float waveLayer = processWaterLayer(WaveCoord) * (dispStrength * 0.4);
     float finalDisplacement = baseLayer + poolLayer + waveLayer;
 
-    // Water color calculation
+    // Base water color and effects
     vec3 waterColor = vec3(0.1, 0.3, 0.7);
     vec3 finalColor = waterColor + waterColor * (finalDisplacement * 0.1);
 
-    // Calculate alpha
-    float alpha = 0.9;
+    // Apply brightness adjustment
+    float effectiveBrightness = max(brightness, minBrightness);
+    finalColor = finalColor * effectiveBrightness;
 
-    FragColor = vec4(finalColor, alpha);
+    // Final color with transparency
+    FragColor = vec4(finalColor, 0.9 * alpha);
 }

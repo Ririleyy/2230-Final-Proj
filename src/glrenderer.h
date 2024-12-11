@@ -178,7 +178,18 @@ private:
 
     int activeTexture = 0;
 
-
+    // Water reflection/refraction buffers
+    GLuint m_reflectionFBO;
+    GLuint m_refractionFBO;
+    GLuint m_reflectionTexture;
+    GLuint m_refractionTexture;
+    GLuint m_reflectionDepth;
+    GLuint m_refractionDepth;
+    const int REFLECTION_WIDTH = 1024;
+    const int REFLECTION_HEIGHT = 1024;
+    void createWaterFBOs();
+    void renderReflection();
+    void renderRefraction();
 
     std::unordered_map<int64_t, WaterPlane> m_waterPlanes;
     float m_waterLevel = 0.02f;  // Match with TerrainGenerator
@@ -191,7 +202,7 @@ private:
     std::vector<float> generateWaterPlaneData(const glm::vec2& position);
 
     static const int RENDER_DISTANCE = 10;        // Distance for terrain generation
-    static const int WATER_RENDER_DISTANCE = 3;  // Distance for water plane generation, smaller than terrain
+    static const int WATER_RENDER_DISTANCE = 10;  // Distance for water plane generation, smaller than terrain
 
 
 

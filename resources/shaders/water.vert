@@ -15,6 +15,7 @@ out vec2 WaveCoord;
 void main() {
     gl_Position = projection * view * model * vec4(aPos, 1.0);
 
+    // Calculate texture coordinates with time-based animation
     TexCoord = aTexCoord;
     DispCoord1 = aTexCoord + vec2(time * 0.1, time * 0.08);
     DispCoord2 = aTexCoord + vec2(-time * 0.05, time * 0.07);

@@ -1,16 +1,12 @@
 #pragma once
-
 #include <vector>
 #include "glm/glm.hpp"
 
-class TerrainGenerator
-{
+class TerrainGenerator {
 public:
     bool m_wireshade;
-
-    // Make these constants static public
-    static const float CHUNK_SIZE;    // Size of each chunk in world units
-    static const float VERTEX_SPACING; // Distance between vertices
+    static const float CHUNK_SIZE;
+    static const float VERTEX_SPACING;
 
     TerrainGenerator();
     ~TerrainGenerator();
@@ -20,46 +16,32 @@ public:
     float getWorldHeight(float worldX, float worldZ);
 
 private:
-
-    // Member variables for terrain generation. You will not need to use these directly.
-
-    // const float CHUNK_SIZE = 25.0f; // Size of each chunk in world units
-    // const float VERTEX_SPACING = 0.5f; // Distance between vertices
-
-    glm::vec2 worldToLocal(float worldX, float worldZ);
-    glm::vec2 localToWorld(float localX, float localZ, int chunkX, int chunkZ);
-
+    // Basic terrain parameters
     std::vector<glm::vec2> m_randVecLookup;
     int m_resolution;
     int m_lookupSize;
     const int m_scale = 120;
-    const float m_waterLevel = 0.0001f;
-    const float m_sandLevel = 0.01f;
-    const float m_grassLevel = 0.15f;
-    const float m_rockLevel = 0.25f;
 
-    // Samples the (infinite) random vector grid at (row, col)
+    // Adjust terrain level thresholds
+    const float m_waterLevel = 0.0001f;  // Keeps water level low
+    const float m_sandLevel = 0.05f;     // Increased sand level range
+    const float m_grassLevel = 0.2f;     // Pushed up grass level
+    const float m_rockLevel = 0.35f;     // Pushed up rock level
+
+    // Widen transition zones for smoother blending
+    const float m_transitionWidth = 0.03f;  // Increased for smoother transitions
+    const float m_waterTransition = 0.04f;  // Wider water transition
+    const float m_sandTransition = 0.06f;   // Wider sand transition
+    const float m_grassTransition = 0.08f;  // Wider grass transition
+
+    // Helper functions
     glm::vec2 sampleRandomVector(int row, int col);
-
-    // Takes a grid coordinate (row, col), [0, m_resolution), which describes a vertex in a plane mesh
-    // Returns a normalized position (x, y, z); x and y in range from [0, 1), and z is obtained from getHeight()
     glm::vec3 getPosition(int row, int col);
-
-    // ================== Students, please focus on the code below this point
-
-    // Takes a normalized (x, y) position, in range [0,1)
-    // Returns a height value, z, by sampling a noise function
-    float getHeight(float x, float y, int numOctaves = 6, float persistence = 0.6f, float lacunarity = 2.0f);
-    float mapHeight(float normalizedHeight);
-
-    // Computes the normal of a vertex by averaging neighbors
+    float getHeight(float x, float y);
     glm::vec3 getNormal(int row, int col);
-
-    // Computes color of vertex using normal and, optionally, position
-    glm::vec3 getColor(glm::vec3 normal, glm::vec3 position);
     glm::vec3 getColor(float worldX, float worldZ);
-
-
-    // Computes the intensity of Perlin noise at some point
     float computePerlin(float x, float y);
+    float mapHeight(float normalizedHeight);
+    glm::vec2 worldToLocal(float worldX, float worldZ);
+    glm::vec2 localToWorld(float localX, float localZ, int chunkX, int chunkZ);
 };

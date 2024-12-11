@@ -109,7 +109,7 @@ private:
     glm::vec3 m_up;
 
     const float m_rotSpeed = 0.005;
-    const float m_translSpeed = 25;
+    const float m_translSpeed = 15;
 
     // terrain
     enum class ChunkState {

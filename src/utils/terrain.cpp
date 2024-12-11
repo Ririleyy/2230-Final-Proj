@@ -7,7 +7,7 @@
 
 // Initialize static members
 const float TerrainGenerator::CHUNK_SIZE = 25.0f;
-const float TerrainGenerator::VERTEX_SPACING = 0.2f;
+const float TerrainGenerator::VERTEX_SPACING = 0.5f;
 
 
 // Constructor
@@ -307,6 +307,9 @@ float TerrainGenerator::mapHeight(float normalizedHeight) {
 std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ) {
     std::vector<float> verts;
     int verticesPerSide = static_cast<int>(CHUNK_SIZE / VERTEX_SPACING);
+
+    bool flipX = chunkX % 2 == 0;
+    bool flipZ = chunkZ % 2 == 0;
     
     for (int x = 0; x < verticesPerSide; x++) {
         for (int z = 0; z < verticesPerSide; z++) {
@@ -329,16 +332,30 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
             glm::vec3 c1 = getColor(worldPos.x, worldPos.y);
             
             // // Calculate UV coordinates
-            // glm::vec2 uv1(static_cast<float>(x) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
-            // glm::vec2 uv2(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
-            // glm::vec2 uv3(static_cast<float>(x) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
-            // glm::vec2 uv4(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
+            glm::vec2 uv1(static_cast<float>(x) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
+            glm::vec2 uv2(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
+            glm::vec2 uv3(static_cast<float>(x) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
+            glm::vec2 uv4(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
 
-            // Calculate normals, colors, and UVs
-            glm::vec2 uv1(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
-            glm::vec2 uv2(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
-            glm::vec2 uv3(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
-            glm::vec2 uv4(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
+            // // Calculate normals, colors, and UVs
+            // glm::vec2 uv1(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
+            // glm::vec2 uv2(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
+            // glm::vec2 uv3(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
+            // glm::vec2 uv4(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
+
+            if (flipX) {
+                uv1 = glm::vec2(1.0f - uv1.x, uv1.y);
+                uv2 = glm::vec2(1.0f - uv2.x, uv2.y);
+                uv3 = glm::vec2(1.0f - uv3.x, uv3.y);
+                uv4 = glm::vec2(1.0f - uv4.x, uv4.y);
+            }
+
+            if (flipZ) {
+                uv1 = glm::vec2(uv1.x, 1.0f - uv1.y);
+                uv2 = glm::vec2(uv2.x, 1.0f - uv2.y);
+                uv3 = glm::vec2(uv3.x, 1.0f - uv3.y);
+                uv4 = glm::vec2(uv4.x, 1.0f - uv4.y);
+            }
             
             // Add first triangle
             addPointToVector(p1, n1, c1, uv1, verts);

@@ -208,6 +208,7 @@ void GLRenderer::initializeGL() {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), reinterpret_cast<void*>(0));
 
         bindTerrainTexture();
+        updateTerrainChunks(true);
 
         // Initialize water displacement texture
         QString disp_filepath = QString(":/resources/images/water_displacement_2.jpg");
@@ -258,7 +259,7 @@ void GLRenderer::paintGL()
 
     // Paint water
     // paintWater();
-    // paintWaterPlanes();
+    paintWaterPlanes();
 
     // Paint particles last for proper transparency
     if (m_weatherEnabled && m_particleSystem) {
@@ -833,42 +834,74 @@ void GLRenderer::rebuildMatrices()
     update();
 }
 
-void GLRenderer::updateTerrainChunks() {
+void GLRenderer::addChunkIfNeeded(int x, int z, int priority, 
+    std::vector<std::pair<int, std::pair<int, int>>>& chunks) {
+    int64_t key = getChunkKey(x, z);
+    if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
+        chunks.push_back({priority, {x, z}});
+    }
+}
+
+void GLRenderer::updateTerrainChunks(bool force) {
     // Calculate current chunk position
     int currentChunkX = static_cast<int>(m_eye.x / TerrainGenerator::CHUNK_SIZE);
     int currentChunkZ = static_cast<int>(m_eye.z / TerrainGenerator::CHUNK_SIZE);
+    
+    if (!force &&currentChunkX == m_prevCamChunk.x && currentChunkZ == m_prevCamChunk.y) {
+        return;
+    }
+    
+    m_prevCamChunk = glm::ivec2(currentChunkX, currentChunkZ);
+
+    // Calculate chunk boundaries for the visible area
+    int minX = currentChunkX - RENDER_DISTANCE;
+    int maxX = currentChunkX + RENDER_DISTANCE;
+    int minZ = currentChunkZ - RENDER_DISTANCE;
+    int maxZ = currentChunkZ + RENDER_DISTANCE;
 
     // Handle existing chunks (fading out distant chunks)
-    for (auto& [key, chunk] : m_terrainChunks) {
-        int chunkX = chunk.position.x;
-        int chunkZ = chunk.position.y;
+    for (auto it = m_terrainChunks.begin(); it != m_terrainChunks.end();) {
+        int chunkX = it->second.position.x;
+        int chunkZ = it->second.position.y;
 
-        float chunkCameraDistance = glm::distance(glm::vec2(chunkX, chunkZ), glm::vec2(currentChunkX, currentChunkZ));
-
-        if (chunkCameraDistance > RENDER_DISTANCE) {
-            glDeleteBuffers(1, &chunk.vbo);
-            glDeleteVertexArrays(1, &chunk.vao);
-            m_terrainChunks.erase(key);
+        if (chunkX < minX || chunkX > maxX || chunkZ < minZ || chunkZ > maxZ) {
+            glDeleteBuffers(1, &it->second.vbo);
+            glDeleteVertexArrays(1, &it->second.vao);
+            it = m_terrainChunks.erase(it);
+        } else {
+            ++it;
         }
     }
 
-    // Queue new chunks for generation
-    // Use spiral pattern to prioritize nearby chunks
-    for (int radius = 0; radius <= RENDER_DISTANCE; radius++) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                if (std::abs(dx) == radius || std::abs(dz) == radius) {
-                    int chunkX = currentChunkX + dx;
-                    int chunkZ = currentChunkZ + dz;
-                    int64_t key = getChunkKey(chunkX, chunkZ);
+    std::vector<std::pair<int, std::pair<int, int>>> chunksToLoad;
+    for (int layer = 0; layer <= RENDER_DISTANCE; ++layer) {
+        // Only process the perimeter of each layer
+        if (layer == 0) {
+            // Center chunk
+            int64_t key = getChunkKey(currentChunkX, currentChunkZ);
+            if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
+                chunksToLoad.push_back({0, {currentChunkX, currentChunkZ}});
+            }
+            continue;
+        }
 
-                    // Only queue if chunk doesn't exist and isn't already queued
-                    if (m_terrainChunks.find(key) == m_terrainChunks.end()) {
-                        m_terrainQueue->addChunk(chunkX, chunkZ);
-                    }
-                }
+        // Process the square perimeter of the current layer
+        for (int offset = -layer; offset <= layer; ++offset) {
+            // Top and bottom edges
+            addChunkIfNeeded(currentChunkX + offset, currentChunkZ - layer, layer, chunksToLoad);
+            addChunkIfNeeded(currentChunkX + offset, currentChunkZ + layer, layer, chunksToLoad);
+            
+            // Left and right edges (excluding corners)
+            if (offset != -layer && offset != layer) {
+                addChunkIfNeeded(currentChunkX - layer, currentChunkZ + offset, layer, chunksToLoad);
+                addChunkIfNeeded(currentChunkX + layer, currentChunkZ + offset, layer, chunksToLoad);
             }
         }
+    }
+
+    std::sort(chunksToLoad.begin(), chunksToLoad.end());
+    for (const auto& chunk : chunksToLoad) {
+        m_terrainQueue->addChunk(chunk.second.first, chunk.second.second);
     }
 
     // Update water planes

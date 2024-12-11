@@ -143,7 +143,8 @@ private:
     std::unordered_map<int64_t, TerrainChunk> m_terrainChunks;
     glm::ivec2 m_prevCamChunk; // chunk where the camera previously sits
 
-    void updateTerrainChunks();
+    void updateTerrainChunks(bool force = false);
+    void addChunkIfNeeded(int x, int z, int priority, std::vector<std::pair<int, std::pair<int, int>>>& chunks);
     void createChunk(int chunkX, int chunkZ);
     int64_t getChunkKey(int chunkX, int chunkZ) {
         return (static_cast<int64_t>(chunkX) << 32) | static_cast<uint32_t>(chunkZ);
@@ -181,6 +182,6 @@ private:
     void paintWaterPlanes();
     std::vector<float> generateWaterPlaneData(const glm::dvec2& position);
 
-    static const int RENDER_DISTANCE = 200;        // Distance for terrain generation
+    static const int RENDER_DISTANCE = 20;        // Distance for terrain generation
     static const int WATER_RENDER_DISTANCE = 10;  // Distance for water plane generation, smaller than terrain
 };

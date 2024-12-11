@@ -13,6 +13,7 @@
 #include "utils/camera.h"
 #include "utils/terrain.h"
 #include "utils/particle.h"
+#include "utils/terrainQueue.h"
 #include <memory>
 
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
@@ -52,6 +53,9 @@ protected:
 
 public slots:
     void tick(QTimerEvent* event);
+
+private slots:
+    void handleChunkReady(const TerrainGenerationQueue::ChunkData& chunk);
 
 private:
     void initializeParticleSystem();
@@ -114,23 +118,17 @@ private:
 
     // terrain
     enum class ChunkState {
-        FADING_IN,
         ACTIVE,
-        FADING_OUT,
-        REMOVING
+        FADING_IN,
+        FADING_OUT
     };
     struct TerrainChunk {
         GLuint vao;
         GLuint vbo;
         int vertexCount;
         glm::ivec2 position; // Chunk coordinates
-        float alpha; // Start invisible
-        ChunkState state;
-        QElapsedTimer fadeTimer;
-
-
     };
-
+    std::unique_ptr<TerrainGenerationQueue> m_terrainQueue;
 
     struct WaterPlane {
         GLuint vao, vbo;
@@ -143,6 +141,7 @@ private:
 
 
     std::unordered_map<int64_t, TerrainChunk> m_terrainChunks;
+    glm::ivec2 m_prevCamChunk; // chunk where the camera previously sits
 
     void updateTerrainChunks();
     void createChunk(int chunkX, int chunkZ);
@@ -166,20 +165,12 @@ private:
     float m_brightness;
 
 
-
     // Water rendering related
-
     GLuint m_water_shader;     // Shader program for water
-
-    // Water displacement related
     GLuint m_water_disp_texture;  // Displacement map texture
     float m_water_time;           // For animation
     QImage m_disp_image;          // Store displacement map image
-
     int activeTexture = 0;
-
-
-
     std::unordered_map<int64_t, WaterPlane> m_waterPlanes;
     float m_waterLevel = 0.02f;  // Match with TerrainGenerator
     float m_waterAnimTime = 0.0f;
@@ -188,11 +179,8 @@ private:
     void createWaterPlane(int chunkX, int chunkZ);
     void updateWaterPlanes();
     void paintWaterPlanes();
-    std::vector<float> generateWaterPlaneData(const glm::vec2& position);
+    std::vector<float> generateWaterPlaneData(const glm::dvec2& position);
 
-    static const int RENDER_DISTANCE = 10;        // Distance for terrain generation
+    static const int RENDER_DISTANCE = 200;        // Distance for terrain generation
     static const int WATER_RENDER_DISTANCE = 10;  // Distance for water plane generation, smaller than terrain
-
-
-
 };

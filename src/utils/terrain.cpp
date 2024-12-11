@@ -9,7 +9,6 @@ const float TerrainGenerator::VERTEX_SPACING = 0.5f;
 
 // Constructor
 TerrainGenerator::TerrainGenerator() {
-    m_wireshade = false;
     m_resolution = 100;
     m_lookupSize = 1024;
     m_randVecLookup.reserve(m_lookupSize);
@@ -243,8 +242,10 @@ float TerrainGenerator::mapHeight(float normalizedHeight) {
 }
 
 std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ) {
-    std::vector<float> verts;
     int verticesPerSide = static_cast<int>(CHUNK_SIZE / VERTEX_SPACING);
+    size_t expectedSize = verticesPerSide * verticesPerSide * 6 * 11;
+    std::vector<float> verts;
+    verts.reserve(expectedSize);
     bool flipX = chunkX % 2 == 0;
     bool flipZ = chunkZ % 2 == 0;
 

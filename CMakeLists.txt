@@ -29,14 +29,18 @@ add_executable(${PROJECT_NAME}
     src/mainwindow.cpp
     src/utils/camera.cpp
     src/settings.cpp
+    src/utils/terrain.cpp
+    src/utils/terrainQueue.cpp
+    src/utils/particle.cpp
   
     src/glrenderer.h
     src/mainwindow.h
     src/shaderloader.h
     src/utils/camera.h
     src/settings.h
-    src/utils/terrain.h src/utils/terrain.cpp
-    src/utils/particle.h src/utils/particle.cpp
+    src/utils/terrain.h
+    src/utils/terrainQueue.h
+    src/utils/particle.h
 
 
 

@@ -4,7 +4,6 @@
 
 class TerrainGenerator {
 public:
-    bool m_wireshade;
     static const float CHUNK_SIZE;
     static const float VERTEX_SPACING;
 

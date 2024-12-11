@@ -11,7 +11,6 @@ uniform sampler2D texture3; // grass
 uniform sampler2D texture4; // sand
 uniform sampler2D texture5; // water
 uniform int activeTexture;
-uniform float alpha;
 uniform float brightness;
 uniform float minBrightness;
 uniform float transitionWidth;
@@ -66,5 +65,5 @@ void main() {
     float effectiveBrightness = max(brightness * beachBrightness, minBrightness);
 
     // Output final color with enhanced alpha for beach areas
-    fragColor = vec4(finalColor.rgb * effectiveBrightness, finalColor.a * alpha);
+    fragColor = vec4(finalColor.rgb * effectiveBrightness, finalColor.a);
 }

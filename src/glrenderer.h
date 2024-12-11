@@ -156,11 +156,17 @@ private:
     TerrainGenerator m_terrain;
     void bindTerrainTexture();
     QImage m_image;
-    GLuint m_textureID;
-    GLuint m_textureID2;
-    GLuint m_textureID3;
-    GLuint m_textureID4;
-    GLuint m_textureID5;
+    GLuint m_textureID; //snow
+    GLuint m_textureID2;//rock
+    GLuint m_textureID3;//grass
+    GLuint m_textureID4;//sand
+    GLuint m_textureID5;//water
+    GLuint m_textureID6;//snowTop
+    GLuint m_textureID7;//snowSand
+    GLuint m_textureID8;//grassTop
+    GLuint m_textureID9;//rockSend
+    GLuint m_textureID10;//seafloor
+    GLuint m_textureID11;//rockMiddle
     void bindTexture();
     int textureLocation;
     float m_brightness;

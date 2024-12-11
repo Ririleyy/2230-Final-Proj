@@ -65,8 +65,13 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   # resources/images/water_displacement_4.jpg
   resources/images/front-view-tree-bark.jpg
   resources/images/top-view-corn-flour-texture.jpg
-  resources/images/sand-close.jpg
-  resources/images/clear-ocean-water-sand.jpg
+
+  resources/images/snowNewtop.jpg
+  resources/images/snowSand.jpg
+  resources/images/grassTop.jpg
+  resources/images/rockSand.jpg
+  resources/images/seaFloor.jpg
+  resources/images/rockMiddle.jpg
 
   )
 

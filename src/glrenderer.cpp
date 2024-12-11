@@ -19,7 +19,7 @@ GLRenderer::GLRenderer(QWidget* parent)
     m_particle_shader(0),
     // Modify these values for higher initial position
     m_trajectoryRadius(150.0f),    // Increased from 30.0f
-    m_trajectoryHeight(120.0f),    // Increased from 15.0f
+    m_trajectoryHeight(20.0f),    // Increased from 15.0f
     m_rotationAngle(0.0f),
     // Initialize camera parameters with higher position
     m_eye(glm::vec3(m_trajectoryRadius, m_trajectoryHeight, 0)),
@@ -261,7 +261,7 @@ void GLRenderer::paintGL()
 void GLRenderer::initializeParticleSystem() {
     m_particleSystem = std::make_unique<ParticleSystem>(10000);
     m_particleSystem->setParticleType(m_isSnow);
-    m_particleSystem->setEmissionArea(100.0f, 100.0f);
+    m_particleSystem->setEmissionArea(400.0f, 400.0f);
 
     glGenVertexArrays(1, &m_particle_vao);
     glGenBuffers(1, &m_particle_vbo);
@@ -544,7 +544,7 @@ void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void GLRenderer::constrainCamera() {
-    const float maxHeight = 190.0f;
+    const float maxHeight = 100.0f;
     const float minHeight = 1.0f;
 
     if (m_eye.y > maxHeight) {
@@ -556,26 +556,6 @@ void GLRenderer::constrainCamera() {
         float adjustment = minHeight - m_eye.y;
         m_eye.y = minHeight;
         m_look.y += adjustment;
-    }
-
-    // Constrain radius
-    glm::vec2 horizontalPos(m_eye.x, m_eye.z);
-    float maxRadius = 180.0f;
-    float currentRadius = glm::length(horizontalPos);
-
-    if (currentRadius > maxRadius) {
-        // Calculate the direction vector in the horizontal plane
-        glm::vec2 dir = glm::normalize(horizontalPos);
-
-        // Move the camera back to the boundary
-        glm::vec2 newPos = dir * maxRadius;
-        m_eye.x = newPos.x;
-        m_eye.z = newPos.y;
-
-        // Adjust look point to maintain the same viewing direction
-        glm::vec3 viewDir = glm::normalize(m_look - m_eye);
-        float viewDistance = glm::length(m_look - m_eye);
-        m_look = m_eye + viewDir * viewDistance;
     }
 }
 

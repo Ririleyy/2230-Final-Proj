@@ -4,7 +4,7 @@
 #include <iostream>
 
 // Initialize static members
-const float TerrainGenerator::CHUNK_SIZE = 25.0f;
+const float TerrainGenerator::CHUNK_SIZE = 30.0f;
 const float TerrainGenerator::VERTEX_SPACING = 0.5f;
 
 // Constructor

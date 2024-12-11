@@ -26,7 +26,7 @@ void main() {
     float finalDisplacement = baseLayer + poolLayer + waveLayer;
 
     // Base water color and effects
-    vec3 waterColor = vec3(0.1, 0.3, 0.7);
+    vec3 waterColor = vec3(0.23, 0.53, 0.67);
     vec3 finalColor = waterColor + waterColor * (finalDisplacement * 0.1);
 
     // Apply brightness adjustment
@@ -34,5 +34,5 @@ void main() {
     finalColor = finalColor * effectiveBrightness;
 
     // Final color with transparency
-    FragColor = vec4(finalColor, 0.9 * alpha);
+    FragColor = vec4(finalColor, 0.95 * alpha);
 }

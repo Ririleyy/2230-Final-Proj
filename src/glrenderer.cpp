@@ -82,9 +82,9 @@ GLRenderer::~GLRenderer()
 glm::vec4 sphericalToCartesian(float phi, float theta)
 {
     return glm::vec4(glm::sin(phi) * glm::cos(theta),
-        glm::cos(phi), // Y component should use cos(phi) directly
-        glm::sin(phi) * glm::sin(theta),
-        1);
+                     glm::cos(phi), // Y component should use cos(phi) directly
+                     glm::sin(phi) * glm::sin(theta),
+                     1);
 }
 
 void pushVec3(glm::vec4 vec, std::vector<float>* data)
@@ -321,7 +321,7 @@ void GLRenderer::bindTerrainVaoVbo() {
     glEnableVertexAttribArray(3); // uv
 
     glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat),
-        reinterpret_cast<void*>(9 * sizeof(GLfloat)));
+                          reinterpret_cast<void*>(9 * sizeof(GLfloat)));
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -687,7 +687,7 @@ void GLRenderer::paintDome() {
     glBindVertexArray(m_sphere_vao);
 
     glm::mat4 domeModel = glm::mat4(1.0f);
-    domeModel = glm::translate(domeModel, glm::vec3(m_eye.x, 0, m_eye.z)); 
+    domeModel = glm::translate(domeModel, glm::vec3(m_eye.x, 0, m_eye.z));
     domeModel = glm::scale(domeModel, glm::vec3(200, 200, 200));
 
     GLint modelLoc = glGetUniformLocation(m_skydome_shader, "model");
@@ -745,6 +745,10 @@ void GLRenderer::paintTerrain() {
         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
 
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "transitionWidth"), 0.1f);
+
+
+
         // Bind texture
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_textureID);
@@ -792,7 +796,7 @@ void GLRenderer::settingsChanged() {
     // Check if this is a weather type change
     if (m_particleSystem != nullptr &&
         ((settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN) != m_weatherEnabled ||
-            (settings.weather == WeatherType::SNOW) != m_isSnow)) {
+         (settings.weather == WeatherType::SNOW) != m_isSnow)) {
 
         m_weatherEnabled = (settings.weather == WeatherType::SNOW || settings.weather == WeatherType::RAIN);
         m_isSnow = settings.weather == WeatherType::SNOW;
@@ -1056,19 +1060,24 @@ void GLRenderer::paintWaterPlanes() {
 
     // Update animation time
     m_waterAnimTime += 0.01f;
+
+    // Calculate effective brightness for water (same as terrain)
+    float effectiveBrightness = std::max(m_brightness, 0.3f);  // Using same minimum brightness as terrain
+
+    // Set all uniform values
     glUniform1f(glGetUniformLocation(m_water_shader, "time"), m_waterAnimTime);
     glUniform1f(glGetUniformLocation(m_water_shader, "dispStrength"), 0.5f);
+    glUniform1f(glGetUniformLocation(m_water_shader, "brightness"), effectiveBrightness);
+    glUniform1f(glGetUniformLocation(m_water_shader, "minBrightness"), 0.3f);
 
-    // Use the same model matrix for all water planes
+    // Create and set model matrix with water level
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(0.0f, m_waterLevel, 0.0f));
-
-    // Set uniform matrices
     glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "model"), 1, GL_FALSE, &model[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
     glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
 
-    // Bind displacement texture
+    // Set water displacement texture
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, m_water_disp_texture);
     glUniform1i(glGetUniformLocation(m_water_shader, "dispTexture"), 0);
@@ -1079,15 +1088,18 @@ void GLRenderer::paintWaterPlanes() {
             continue;
         }
 
+        // Calculate alpha for fading effect
         float alpha = plane.state == ChunkState::FADING_IN ?
                           std::min(plane.fadeTimer.elapsed() / 2000.0f, 1.0f) :
                           std::max(1.0f - plane.fadeTimer.elapsed() / 2000.0f, 0.0f);
 
         glUniform1f(glGetUniformLocation(m_water_shader, "alpha"), alpha);
+
         glBindVertexArray(plane.vao);
         glDrawArrays(GL_TRIANGLES, 0, plane.vertexCount);
     }
 
+    // Clean up state
     glDisable(GL_BLEND);
     glBindVertexArray(0);
     glUseProgram(0);

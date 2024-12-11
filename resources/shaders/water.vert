@@ -8,20 +8,15 @@ uniform mat4 projection;
 uniform float time;
 
 out vec2 TexCoord;
-out vec2 DispCoord1;  // First displacement layer
-out vec2 DispCoord2;  // Second displacement layer for pooling effect
-out vec2 WaveCoord;   // Additional wave coordinate for more detail
+out vec2 DispCoord1;
+out vec2 DispCoord2;
+out vec2 WaveCoord;
 
 void main() {
     gl_Position = projection * view * model * vec4(aPos, 1.0);
+
     TexCoord = aTexCoord;
-
-    // Base water movement with increased speed
     DispCoord1 = aTexCoord + vec2(time * 0.1, time * 0.08);
-
-    // Slower, different direction for pooling effect
     DispCoord2 = aTexCoord + vec2(-time * 0.05, time * 0.07);
-
-    // Fast moving waves for additional detail
     WaveCoord = aTexCoord * 2.0 + vec2(time * 0.15);
 }

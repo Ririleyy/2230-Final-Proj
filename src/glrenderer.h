@@ -181,7 +181,7 @@ private:
 
 
     std::unordered_map<int64_t, WaterPlane> m_waterPlanes;
-    float m_waterLevel = -2.0f;  // Match with TerrainGenerator
+    float m_waterLevel = 0.02f;  // Match with TerrainGenerator
     float m_waterAnimTime = 0.0f;
 
     // Add new water-related function declarations

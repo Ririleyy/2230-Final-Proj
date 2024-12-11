@@ -60,7 +60,7 @@ qt_add_resources(${PROJECT_NAME} "Resources"
   resources/images/natural-landscape.jpg
   resources/images/water_displacement_0.png
   resources/images/water_displacement_1.jpg
-  # resources/images/water_displacement_2.jpg
+  resources/images/water_displacement_2.jpg
   # resources/images/water_displacement_3.jpg
   # resources/images/water_displacement_4.jpg
   resources/images/front-view-tree-bark.jpg

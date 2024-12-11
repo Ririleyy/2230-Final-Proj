@@ -202,7 +202,7 @@ void GLRenderer::initializeGL() {
         bindTerrainTexture();
 
         // Initialize water displacement texture
-        QString disp_filepath = QString(":/resources/images/water_displacement_0.png");
+        QString disp_filepath = QString(":/resources/images/water_displacement_2.jpg");
         if (!m_disp_image.load(disp_filepath)) {
             std::cerr << "Failed to load water displacement texture" << std::endl;
             return;

@@ -10,7 +10,7 @@
 
 
 GLRenderer::GLRenderer(QWidget* parent)
-    : QOpenGLWidget(parent),
+    :QOpenGLWidget(parent),
     m_angleX(6),
     m_angleY(0),
     m_zoom(2),
@@ -165,8 +165,6 @@ std::vector<float> generateDomeData(int phiTesselations, int thetaTesselations)
     return data;
 }
 
-// ================== Students, You'll Be Working In These Files
-
 void GLRenderer::initializeGL() {
     m_timer = startTimer(1000 / 60);
     m_elapsedTimer.start();
@@ -224,7 +222,7 @@ void GLRenderer::initializeGL() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindTexture(GL_TEXTURE_2D, 5);
 
         // Initialize water animation time
         m_waterAnimTime = 0.0f;
@@ -237,6 +235,26 @@ void GLRenderer::initializeGL() {
     }
     catch (const std::exception& e) {
         fprintf(stderr, "Error during initialization: %s\n", e.what());
+    }
+}
+
+void GLRenderer::paintGL()
+{
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Paint terrain first
+    paintTerrain();
+
+    // Paint dome
+    paintDome();
+
+    // Paint water
+    // paintWater();
+    paintWaterPlanes();
+
+    // Paint particles last for proper transparency
+    if (m_weatherEnabled && m_particleSystem) {
+        renderParticles();
     }
 }
 
@@ -262,7 +280,6 @@ void GLRenderer::initializeParticleSystem() {
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, sizeof(Particle), (void*)offsetof(Particle, life));
 }
-
 
 void GLRenderer::setWeatherType(bool isSnow) {
     if (!m_particleSystem) return;  // Guard against null pointer
@@ -389,31 +406,63 @@ void GLRenderer::bindTerrainTexture() {
     // Unbind texture
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    // Load sand texture
+    QString sand_filepath = QString(":/resources/images/top-view-corn-flour-texture.jpg");
+    if (!m_image.load(sand_filepath)) {
+        std::cerr << "Failed to load texture: " << sand_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for sand
+    glGenTextures(1, &m_textureID4);
+    glActiveTexture(GL_TEXTURE3); // Bind to texture unit 3
+    glBindTexture(GL_TEXTURE_2D, m_textureID4);
+
+    // Upload sand texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for sand texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Unbind sand texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Load water texture
+    QString water_filepath = QString(":/resources/images/water_displacement_1.jpg");
+    if (!m_image.load(water_filepath)) {
+        std::cerr << "Failed to load texture: " << water_filepath.toStdString() << std::endl;
+        return;
+    }
+    m_image = m_image.convertToFormat(QImage::Format_RGBA8888);
+
+    // Generate and bind texture ID for water
+    glGenTextures(1, &m_textureID5);
+    glActiveTexture(GL_TEXTURE4); // Bind to texture unit 4
+    glBindTexture(GL_TEXTURE_2D, m_textureID5);
+
+    // Upload water texture data to GPU
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, m_image.width(), m_image.height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, m_image.bits());
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Set texture parameters for water texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Unbind water texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+
+
     glUseProgram(0);
 
 }
-void GLRenderer::paintGL()
-{
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Paint terrain first
-    paintTerrain();
-
-    // Paint dome
-    paintDome();
-
-    // Paint water
-    // paintWater();
-    paintWaterPlanes();
-
-    // Paint particles last for proper transparency
-    if (m_weatherEnabled && m_particleSystem) {
-        renderParticles();
-    }
-}
-
-
-
 
 void GLRenderer::renderParticles() {
     glUseProgram(m_particle_shader);
@@ -495,9 +544,8 @@ void GLRenderer::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void GLRenderer::constrainCamera() {
-    // Constrain height
-    const float maxHeight = 90.0f;
-    const float minHeight = 10.0f;
+    const float maxHeight = 190.0f;
+    const float minHeight = 1.0f;
 
     if (m_eye.y > maxHeight) {
         float adjustment = m_eye.y - maxHeight;
@@ -530,25 +578,6 @@ void GLRenderer::constrainCamera() {
         m_look = m_eye + viewDir * viewDistance;
     }
 }
-
-// void GLRenderer::updateCameraPosition() {
-//     if (!m_autoRotate) return;
-
-//     float deltaTime = m_elapsedTimer.elapsed() * 0.001f;
-//     m_elapsedTimer.restart();
-
-//     // Update rotation angle
-//     m_rotationAngle += m_rotationSpeed * deltaTime;
-
-//     // Calculate new camera position on circular path
-//     m_eye.x = m_trajectoryRadius * cos(m_rotationAngle);
-//     m_eye.z = m_trajectoryRadius * sin(m_rotationAngle);
-//     m_eye.y = m_trajectoryHeight;
-
-//     // Always look at center of terrain
-//     m_look = glm::vec3(0.0f, 0.0f, 0.0f);
-//     m_up = glm::vec3(0.0f, 1.0f, 0.0f);
-// }
 
 // Fix the auto-rotation functionality in updateCameraPosition():
 void GLRenderer::updateCameraPosition() {
@@ -690,7 +719,6 @@ void GLRenderer::paintDome() {
 void GLRenderer::paintTerrain() {
 
     glUseProgram(m_terrain_shader);
-
     updateTerrainChunks();
 
     // Render all visible chunks
@@ -712,10 +740,7 @@ void GLRenderer::paintTerrain() {
         }
 
         glBindVertexArray(chunk.vao);
-
         glm::mat4 model(1.0);
-
-        model = glm::translate(glm::vec3(0.0,20.0,0.0));
         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "model"), 1, GL_FALSE, &model[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "view"), 1, GL_FALSE, &m_view[0][0]);
         glUniformMatrix4fv(glGetUniformLocation(m_terrain_shader, "projection"), 1, GL_FALSE, &m_proj[0][0]);
@@ -730,22 +755,30 @@ void GLRenderer::paintTerrain() {
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, m_textureID3);
         glUniform1i(glGetUniformLocation(m_terrain_shader, "texture3"), 2);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, m_textureID4);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture4"), 3);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, m_textureID5);
+        glUniform1i(glGetUniformLocation(m_terrain_shader, "texture5"), 4);
+
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "brightness"), m_brightness);
+        glUniform1f(glGetUniformLocation(m_terrain_shader, "minBrightness"), 0.3f); // Set minimum brightness
+
+
+
         // Pass alpha to shader
         glUniform1f(glGetUniformLocation(m_terrain_shader, "alpha"), chunk.alpha);
 
         if(settings.mountain == MountainType::SNOW_MOUNTAIN){
             activeTexture = 0;
         }else if(settings.mountain==MountainType::ROCK_MOUNTAIN){
-
             activeTexture = 1;
-
         }else if(settings.mountain==MountainType::GRASS_MOUNTAIN){
             activeTexture = 2;
         }
 
         glUniform1i(glGetUniformLocation(m_terrain_shader, "activeTexture"), activeTexture);
-
-
         glDrawArrays(GL_TRIANGLES, 0, chunk.vertexCount);
     }
 
@@ -771,6 +804,7 @@ void GLRenderer::settingsChanged() {
 
     // Update time and view-related settings
     timeToSunPos(settings.time);
+    sunPosToBrightness();
     m_fov = settings.fov;
 
     rebuildMatrices();
@@ -794,6 +828,16 @@ void GLRenderer::timeToSunPos(const float time)
     zenith = glm::min(zenith, glm::radians(130.0f));
     // std::cout << "Time: " << time << " Zenith: " << glm::degrees(zenith) << " Azimuth: " << glm::degrees(azimuth) << std::endl;
     m_sunPos = glm::vec2(azimuth, zenith);
+}
+
+void GLRenderer::sunPosToBrightness()
+{
+    float zenith = m_sunPos.y;
+    float dynamicBrightness = glm::cos(zenith);
+    dynamicBrightness = glm::clamp(dynamicBrightness, 0.0f, 1.0f); // Clamp between 0 and 1
+    float minBrightness = 0.3f; // 30% brightness
+    m_brightness = glm::mix(minBrightness, 1.0f, dynamicBrightness);
+
 }
 
 // ================== Other stencil code
@@ -972,7 +1016,7 @@ void GLRenderer::updateTerrainChunks() {
 void GLRenderer::createChunk(int chunkX, int chunkZ) {
     TerrainChunk chunk;
     chunk.position = glm::ivec2(chunkX, chunkZ);
-    chunk.alpha = 0.0f;
+    chunk.alpha = m_brightness;
     chunk.fadeTimer.start();
     chunk.state = ChunkState::FADING_IN;
 
@@ -1002,6 +1046,7 @@ void GLRenderer::createChunk(int chunkX, int chunkZ) {
     m_terrainChunks[getChunkKey(chunkX, chunkZ)] = chunk;
 }
 
+
 void GLRenderer::paintWaterPlanes() {
     glUseProgram(m_water_shader);
 
@@ -1016,7 +1061,7 @@ void GLRenderer::paintWaterPlanes() {
 
     // Use the same model matrix for all water planes
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, m_waterLevel + 20.0f, 0.0f));
+    model = glm::translate(model, glm::vec3(0.0f, m_waterLevel, 0.0f));
 
     // Set uniform matrices
     glUniformMatrix4fv(glGetUniformLocation(m_water_shader, "model"), 1, GL_FALSE, &model[0][0]);

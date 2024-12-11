@@ -32,6 +32,11 @@ private:
     std::vector<glm::vec2> m_randVecLookup;
     int m_resolution;
     int m_lookupSize;
+    const int m_scale = 120;
+    const float m_waterLevel = 0.0001f;
+    const float m_sandLevel = 0.01f;
+    const float m_grassLevel = 0.15f;
+    const float m_rockLevel = 0.25f;
 
     // Samples the (infinite) random vector grid at (row, col)
     glm::vec2 sampleRandomVector(int row, int col);
@@ -44,13 +49,16 @@ private:
 
     // Takes a normalized (x, y) position, in range [0,1)
     // Returns a height value, z, by sampling a noise function
-    float getHeight(float x, float y);
+    float getHeight(float x, float y, int numOctaves = 6, float persistence = 0.6f, float lacunarity = 2.0f);
+    float mapHeight(float normalizedHeight);
 
     // Computes the normal of a vertex by averaging neighbors
     glm::vec3 getNormal(int row, int col);
 
     // Computes color of vertex using normal and, optionally, position
     glm::vec3 getColor(glm::vec3 normal, glm::vec3 position);
+    glm::vec3 getColor(float worldX, float worldZ);
+
 
     // Computes the intensity of Perlin noise at some point
     float computePerlin(float x, float y);

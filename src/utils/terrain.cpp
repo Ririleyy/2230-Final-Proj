@@ -152,37 +152,19 @@ float interpolate(float A, float B, float alpha) {
 
 // Takes a normalized (x, y) position, in range [0,1)
 // Returns a height value, z, by sampling a noise function
-float TerrainGenerator::getHeight(float x, float y) {
-
-    // float z = 0;
-    // float amplitude_1 = 0.5f;
-    // float frequency_1 = 2.0f;
-    // z += computePerlin(x * frequency_1, y * frequency_1) * amplitude_1;
-    // z += computePerlin(x * 4.0f, y * 4.0f) * 0.25f;
-    // z += computePerlin(x * 8.0f, y * 8.0f) * (1/8);
-    // z += computePerlin(x * 10.0f, y * 10.0f) * 0.1f;
-    // return z;
-
-
+float TerrainGenerator::getHeight(float x, float y, int numOctaves, float persistence, float lacunarity) {
     float total = 0;
     float amplitude = 1.0;
     float frequency = 1.0;
     float maxAmplitude = 0;  // Used to normalize the result to the range [0, 1]
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < numOctaves; i++) {
         total += computePerlin(x * frequency, y * frequency) * amplitude;
-
-
         maxAmplitude += amplitude;
-        amplitude *= 0.5;
-        frequency *= 2.0;
+        amplitude *= persistence;
+        frequency *= lacunarity;
     }
-
-
     return total / maxAmplitude;
-
-
-
 }
 
 // Computes the normal of a vertex by averaging neighbors
@@ -216,33 +198,41 @@ glm::vec3 TerrainGenerator::getNormal(int row, int col) {
 
 // Computes color of vertex using normal and, optionally, position
 glm::vec3 TerrainGenerator::getColor(glm::vec3 normal, glm::vec3 position) {
-    // Task 10: compute color as a function of the normal and position
-    // bool height_z =false;
-    // if (position.z > 0.0f){
-
-    //     height_z = true;
-
-    // }
-
-    // //normal
-    // glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f);
-    // float dotProduct = glm::dot(normal, up);
-    // bool normal_z = false;
-    // if (dotProduct > 0.8f){
-
-    //     normal_z = true;
-
-
-    // }
-
-    // if (height_z && normal_z) {
-    //     return glm::vec3(1.0f, 1.0f, 1.0f);
-    // } else {
-    //     return glm::vec3(0.5f, 0.5f, 0.5f);
-    // }
     return glm::vec3(0.5f, 0.5f, 0.5f);
+}
 
+// glm::vec3 TerrainGenerator::getColor(float worldX, float worldZ){
+//     float scaledX = worldX / m_scale;
+//     float scaledZ = worldZ / m_scale;
+//     float normalizedHeight = getHeight(scaledX, scaledZ);
+//     if (normalizedHeight <= m_waterLevel) {
+//         return glm::vec3(0.01f, 0.71f, 0.98f);
+//     } else if (normalizedHeight <= m_sandLevel) {
+//         return glm::vec3(0.98f, 0.90f, 0.011f);
+//     } else if (normalizedHeight <= m_grassLevel) {
+//         return glm::vec3(0.48f, 0.90f, 0.33f);
+//     } else if (normalizedHeight <= m_rockLevel) {
+//         return glm::vec3(0.5f, 0.47f, 0.43f);
+//     } else {
+//         return glm::vec3(1.0f, 1.0f, 1.0f);
+//     }
+// }
 
+glm::vec3 TerrainGenerator::getColor(float worldX, float worldZ){
+    float scaledX = worldX / m_scale;
+    float scaledZ = worldZ / m_scale;
+    float normalizedHeight = getHeight(scaledX, scaledZ);
+    if (normalizedHeight <= m_waterLevel) {
+        return glm::vec3(0.0f, 0.0f, 0.0f);
+    } else if (normalizedHeight <= m_sandLevel) {
+        return glm::vec3(1.0f, 0.0f, 0.0f);
+    } else if (normalizedHeight <= m_grassLevel) {
+        return glm::vec3(0.0f, 1.0f, 0.0f);
+    } else if (normalizedHeight <= m_rockLevel) {
+        return glm::vec3(0.0f, 0.0f, 1.0f);
+    } else {
+        return glm::vec3(1.0f, 1.0f, 1.0f);
+    }
 }
 
 // Computes the intensity of Perlin noise at some point
@@ -256,8 +246,6 @@ float TerrainGenerator::computePerlin(float x, float y) {
     float x3 = x_round,y3 = y_round + 1;
     float x4 = x_round + 1,y4 = y_round + 1;
 
-
-    // Task 2: compute offset vectors
     glm::vec2 v1 = {x - x1,y - y1};
     glm::vec2 v2 = {x - x2,y - y2};
     glm::vec2 v3 = {x - x3,y - y3};
@@ -267,13 +255,12 @@ float TerrainGenerator::computePerlin(float x, float y) {
     glm::vec2 d2 = sampleRandomVector(x2, y2);
     glm::vec2 d3 = sampleRandomVector(x3, y3);
     glm::vec2 d4 = sampleRandomVector(x4, y4);
-    // Task 3: compute the dot product between the grid point direction vectors and its offset vectors
+
     float A = glm::dot(d1,v1); // dot product between top-left direction and its offset
     float B = glm::dot(d2,v2); // dot product between top-right direction and its offset
     float C = glm::dot(d3,v3); // dot product between bottom-right direction and its offset
     float D = glm::dot(d4,v4); // dot product between bottom-left direction and its offset
 
-    // Task 5: Debug this line to properly use your interpolation function to produce the correct value
     float dx = x - x1;
     float dy = y - y1;
 
@@ -282,8 +269,6 @@ float TerrainGenerator::computePerlin(float x, float y) {
 
     float result = interpolate(G, H, dy);
     return result;
-
-
 }
 
 
@@ -301,21 +286,30 @@ glm::vec2 TerrainGenerator::localToWorld(float localX, float localZ, int chunkX,
     );
 }
 
-
-
 float TerrainGenerator::getWorldHeight(float worldX, float worldZ) {
-    float scaledX = worldX * 0.02f;
-    float scaledZ = worldZ * 0.02f;
-    float height = getHeight(scaledX, scaledZ) * 50.0f;
+    float scaledX = worldX / m_scale;
+    float scaledZ = worldZ / m_scale;
+    float normalizedHeight = getHeight(scaledX, scaledZ);
+    float scaledHeight = mapHeight(normalizedHeight) * m_scale;
+    return scaledHeight;
+}
 
-    // For terrain generation, we always return the actual height
-    // without water level consideration
-    return height;
+float TerrainGenerator::mapHeight(float normalizedHeight) {
+    if (normalizedHeight <= m_waterLevel) {
+        return 0;
+    } else {
+        // re-map the height from nHeight - waterLevel to 0 - 1
+        float nHeight = (normalizedHeight - m_waterLevel) / (1.0f - m_waterLevel);
+        return 1 - std::cos((nHeight * M_PI) / 2);
+    }
 }
 
 std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ) {
     std::vector<float> verts;
     int verticesPerSide = static_cast<int>(CHUNK_SIZE / VERTEX_SPACING);
+
+    bool flipX = chunkX % 2 == 0;
+    bool flipZ = chunkZ % 2 == 0;
     
     for (int x = 0; x < verticesPerSide; x++) {
         for (int z = 0; z < verticesPerSide; z++) {
@@ -327,11 +321,6 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
             );
             
             // Generate vertices for two triangles
-            // glm::vec3 p1(worldPos.x, getWorldHeight(worldPos.x, worldPos.y), worldPos.y);
-            // glm::vec3 p2(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y), worldPos.y);
-            // glm::vec3 p3(worldPos.x, getWorldHeight(worldPos.x, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
-            // glm::vec3 p4(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
-
             glm::vec3 p1(worldPos.x, getWorldHeight(worldPos.x, worldPos.y), worldPos.y);
             glm::vec3 p2(worldPos.x + VERTEX_SPACING, getWorldHeight(worldPos.x + VERTEX_SPACING, worldPos.y), worldPos.y);
             glm::vec3 p3(worldPos.x, getWorldHeight(worldPos.x, worldPos.y + VERTEX_SPACING), worldPos.y + VERTEX_SPACING);
@@ -340,25 +329,45 @@ std::vector<float> TerrainGenerator::generateTerrainChunk(int chunkX, int chunkZ
             // Calculate normals and colors
             glm::vec3 n1 = glm::normalize(glm::cross(p2 - p1, p3 - p1));
             glm::vec3 color = getColor(n1, p1);
+            glm::vec3 c1 = getColor(worldPos.x, worldPos.y);
             
-            // Calculate UV coordinates
+            // // Calculate UV coordinates
             glm::vec2 uv1(static_cast<float>(x) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
             glm::vec2 uv2(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z) / verticesPerSide);
             glm::vec2 uv3(static_cast<float>(x) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
             glm::vec2 uv4(static_cast<float>(x + 1) / verticesPerSide, static_cast<float>(z + 1) / verticesPerSide);
+
+            // // Calculate normals, colors, and UVs
+            // glm::vec2 uv1(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
+            // glm::vec2 uv2(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z) / (verticesPerSide - 1));
+            // glm::vec2 uv3(static_cast<float>(x) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
+            // glm::vec2 uv4(static_cast<float>(x + 1) / (verticesPerSide - 1), static_cast<float>(z + 1) / (verticesPerSide - 1));
+
+            if (flipX) {
+                uv1 = glm::vec2(1.0f - uv1.x, uv1.y);
+                uv2 = glm::vec2(1.0f - uv2.x, uv2.y);
+                uv3 = glm::vec2(1.0f - uv3.x, uv3.y);
+                uv4 = glm::vec2(1.0f - uv4.x, uv4.y);
+            }
+
+            if (flipZ) {
+                uv1 = glm::vec2(uv1.x, 1.0f - uv1.y);
+                uv2 = glm::vec2(uv2.x, 1.0f - uv2.y);
+                uv3 = glm::vec2(uv3.x, 1.0f - uv3.y);
+                uv4 = glm::vec2(uv4.x, 1.0f - uv4.y);
+            }
             
             // Add first triangle
-            addPointToVector(p1, n1, color, uv1, verts);
-            addPointToVector(p2, n1, color, uv2, verts);
-            addPointToVector(p3, n1, color, uv3, verts);
+            addPointToVector(p1, n1, c1, uv1, verts);
+            addPointToVector(p2, n1, c1, uv2, verts);
+            addPointToVector(p3, n1, c1, uv3, verts);
             
             // Add second triangle
-            addPointToVector(p2, n1, color, uv2, verts);
-            addPointToVector(p4, n1, color, uv4, verts);
-            addPointToVector(p3, n1, color, uv3, verts);
+            addPointToVector(p2, n1, c1, uv2, verts);
+            addPointToVector(p4, n1, c1, uv4, verts);
+            addPointToVector(p3, n1, c1, uv3, verts);
         }
     }
-    
     return verts;
 }
 

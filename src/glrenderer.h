@@ -60,6 +60,7 @@ private:
     void bindTerrainVaoVbo();
     void paintTerrain();
     void paintDome();
+    void sunPosToBrightness();
 
 
 
@@ -96,7 +97,7 @@ private:
     float m_rotationAngle = 0.0f;        // Current angle of rotation
     const float m_rotationSpeed = 0.2f;   // Speed of rotation in radians/second
     const float m_maxHeight = 45.0f;      // Maximum camera height
-    const float m_minHeight = 5.0f;       // Minimum camera height
+    const float m_minHeight = 0.5f;       // Minimum camera height
     void updateCameraPosition();
     void constrainCamera();
 
@@ -109,7 +110,7 @@ private:
     glm::vec3 m_up;
 
     const float m_rotSpeed = 0.005;
-    const float m_translSpeed = 25;
+    const float m_translSpeed = 15;
 
     // terrain
     enum class ChunkState {
@@ -158,8 +159,11 @@ private:
     GLuint m_textureID;
     GLuint m_textureID2;
     GLuint m_textureID3;
+    GLuint m_textureID4;
+    GLuint m_textureID5;
     void bindTexture();
     int textureLocation;
+    float m_brightness;
 
 
 
@@ -177,7 +181,7 @@ private:
 
 
     std::unordered_map<int64_t, WaterPlane> m_waterPlanes;
-    float m_waterLevel = -2.0f;  // Match with TerrainGenerator
+    float m_waterLevel = 0.02f;  // Match with TerrainGenerator
     float m_waterAnimTime = 0.0f;
 
     // Add new water-related function declarations

@@ -86,10 +86,10 @@ A real-time natural environment renderer built with OpenGL, featuring procedural
 
 ## Team
 Team Nature Werks:
-Tianhao Shi
-Xiaoxi Yang
-Jiayi Li
-Haoyang Li
+- Tianhao Shi
+- Xiaoxi Yang
+- Jiayi Li
+- Haoyang Li
 
 ## Collaboration/References
 

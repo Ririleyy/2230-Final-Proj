@@ -226,6 +226,9 @@ void GLRenderer::initializeGL() {
             GL_RGBA, GL_UNSIGNED_BYTE, m_disp_image.bits());
 
         // Set texture parameters
+        timeToSunPos(settings.time);
+        sunPosToBrightness();
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -828,6 +831,7 @@ void GLRenderer::paintDome() {
 void GLRenderer::paintTerrain() {
     glUseProgram(m_terrain_shader);
     updateTerrainChunks();
+    std::cout << "brightness:" << m_brightness << std::endl;
     // Render all visible chunks
     for (auto& [key, chunk] : m_terrainChunks) {
         glBindVertexArray(chunk.vao);
